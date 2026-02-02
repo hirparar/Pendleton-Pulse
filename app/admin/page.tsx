@@ -31,11 +31,6 @@ export default async function AdminHome() {
           body={`${totalInterpreters} total interpreters in the directory.`}
           href="/admin/interpreters"
         />
-        <AdminCard
-          title="Approvals"
-          body={`${pending} interpreter request(s) waiting for review.`}
-          href="/admin/pending"
-        />
       </section>
 
       <section className="rounded-3xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">

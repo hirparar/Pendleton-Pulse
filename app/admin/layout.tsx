@@ -14,7 +14,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 { href: "/admin", label: "Overview" },
                 { href: "/admin/jobs", label: "Jobs", badge: "Primary" },
                 { href: "/admin/interpreters", label: "Interpreters" },
-                { href: "/admin/pending", label: "Approvals" },
             ]}
             right={<UserCluster status={profile.status} />}
         >
