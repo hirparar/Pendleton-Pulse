@@ -1,0 +1,26 @@
+import { auth, clerkClient } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
+
+export async function ensureUserProfile() {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  const existing = await prisma.userProfile.findUnique({
+    where: { clerkUserId: userId },
+  });
+  if (existing) return existing;
+
+  // Fallback: fetch from Clerk (webhook might not have fired yet)
+  const user = await (await clerkClient()).users.getUser(userId);
+  const primaryEmail =
+    user.emailAddresses.find((e) => e.id === user.primaryEmailAddressId)?.emailAddress ?? null;
+
+  return prisma.userProfile.create({
+    data: {
+      clerkUserId: userId,
+      email: primaryEmail,
+      role: "INTERPRETER",
+      status: "PENDING",
+    },
+  });
+}

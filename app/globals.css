@@ -123,3 +123,27 @@
     @apply bg-background text-foreground;
   }
 }
+
+.bg-grid {
+  background-image: radial-gradient(circle at 1px 1px, rgb(255 255 255 / .06) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.bg-radial-fade {
+  mask-image: radial-gradient(circle at top, black 10%, transparent 65%);
+}
+
+.noise {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+}
+
+/* Ultra subtle glass */
+.glass {
+  background: color-mix(in oklab, hsl(var(--background)) 70%, transparent);
+  border: 1px solid color-mix(in oklab, hsl(var(--border)) 60%, transparent);
+  backdrop-filter: blur(16px);
+}

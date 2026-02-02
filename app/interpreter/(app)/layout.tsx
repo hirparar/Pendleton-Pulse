@@ -1,0 +1,28 @@
+import { AppShell } from "@/components/app-shell";
+import { requireInterpreterApproved } from "@/lib/authz";
+import { UserCluster } from "@/components/user-header";
+
+export default async function InterpreterApprovedLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const profile = await requireInterpreterApproved();
+
+  return (
+    <AppShell
+      accent="interpreter"
+      title="Jobs"
+      subtitle="Discover interpreting jobs posted by admins. Your feed updates as new jobs are posted."
+      nav={[
+        { href: "/interpreter/dashboard", label: "Job feed", badge: "Primary" },
+        { href: "/interpreter/availability", label: "Availability" },
+        { href: "/interpreter/profile", label: "Profile" },
+        { href: "/interpreter/support", label: "Support" },
+      ]}
+      right={<UserCluster status={profile.status} />}
+    >
+      {children}
+    </AppShell>
+  );
+}
