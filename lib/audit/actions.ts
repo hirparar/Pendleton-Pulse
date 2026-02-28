@@ -1,0 +1,11 @@
+export const AUDIT_ACTIONS = {
+  APPROVED: "APPROVED",
+  DENIED: "DENIED",
+
+  // Phase 3
+  ACTIVATED: "ACTIVATED",
+  DEACTIVATED: "DEACTIVATED",
+  PROFILE_CORE_UPDATED: "PROFILE_CORE_UPDATED",
+} as const;
+
+export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

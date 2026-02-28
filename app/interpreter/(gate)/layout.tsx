@@ -1,6 +1,7 @@
 import { requireInterpreter } from "@/lib/authz";
 import { UserCluster } from "@/components/user-header";
 import { LogoMark } from "@/components/brand";
+import { redirect } from "next/navigation";
 
 export default async function InterpreterGateLayout({
   children,
@@ -8,6 +9,7 @@ export default async function InterpreterGateLayout({
   children: React.ReactNode;
 }) {
   const profile = await requireInterpreter();
+  if (profile.isActive === false) redirect("/interpreter/inactive");
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50">

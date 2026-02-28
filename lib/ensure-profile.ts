@@ -1,7 +1,9 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { unstable_noStore as noStore } from "next/cache";
 
 export async function ensureUserProfile() {
+  noStore();
   const { userId } = await auth();
   if (!userId) return null;
 

@@ -1,46 +1,51 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
 import { MotionIn } from "@/components/motion";
+import { AdminOverviewMetrics } from "./overview-metrics";
 
 export default async function AdminHome() {
-  const [pending, totalInterpreters] = await Promise.all([
-    prisma.userProfile.count({ where: { role: "INTERPRETER", status: "PENDING" } }),
-    prisma.userProfile.count({ where: { role: "INTERPRETER" } }),
-  ]);
-
   return (
     <MotionIn className="space-y-6">
       <header className="space-y-1.5">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white">
-          Admin overview
+          Overview
         </h1>
         <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          Jobs are the primary workflow. Use this console to manage people and access.
+          System health at a glance. Metrics are read-only in this sprint.
         </p>
       </header>
 
+      <AdminOverviewMetrics />
+
       <section className="grid gap-4 lg:grid-cols-3">
         <AdminCard
-          title="Jobs"
-          body="Create and manage interpreting jobs (coming soon)."
-          href="/admin/jobs"
+          title="Approvals"
+          body="Review and approve pending interpreters."
+          href="/admin/approvals"
           tone="primary"
         />
         <AdminCard
           title="Interpreters"
-          body={`${totalInterpreters} total interpreters in the directory.`}
+          body="Search, inspect, and audit interpreter records."
           href="/admin/interpreters"
+        />
+        <AdminCard
+          title="Assignments"
+          body="Admins will post interpreting jobs."
+          href="/admin/assignments"
         />
       </section>
 
       <section className="rounded-3xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
         <div className="text-sm font-semibold tracking-tight text-zinc-950 dark:text-white">
-          What’s next
+          What's next
         </div>
         <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-          Once jobs are implemented, the main admin workflow will shift to:
-          <span className="font-medium text-zinc-900 dark:text-white"> post jobs → match interpreters → manage assignments</span>.
-          The approvals system stays as an access gate, not the product.
+          Jobs will become the primary workflow once assignments ship:
+          <span className="font-medium text-zinc-900 dark:text-white">
+            {" "}
+            post jobs → match interpreters → manage assignments
+          </span>
+          .
         </div>
       </section>
     </MotionIn>

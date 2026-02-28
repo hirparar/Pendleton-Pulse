@@ -26,7 +26,7 @@ export default async function AdminInterpretersPage() {
             Interpreters
           </h1>
           <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            Search profiles, review status, and manage access. Jobs are the primary workflow — this is the people layer.
+            Search profiles, review status, and inspect audit. Mutations are limited to approvals in this phase.
           </p>
         </div>
 

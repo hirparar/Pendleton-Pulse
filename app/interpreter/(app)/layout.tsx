@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/app-shell";
-import { requireInterpreterApproved } from "@/lib/authz";
+import { requireInterpreterEligible } from "@/lib/authz";
 import { UserCluster } from "@/components/user-header";
 
 export default async function InterpreterApprovedLayout({
@@ -7,7 +7,7 @@ export default async function InterpreterApprovedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const profile = await requireInterpreterApproved();
+  const profile = await requireInterpreterEligible();
 
   return (
     <AppShell
