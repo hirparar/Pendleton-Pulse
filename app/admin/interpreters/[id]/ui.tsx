@@ -36,13 +36,6 @@ function toCsv(arr: string[]) {
   return arr.join(", ");
 }
 
-function accessState(status: Props["status"], isActive: boolean) {
-  if (!isActive) return { label: "Blocked", reason: "Inactive account" };
-  if (status === "PENDING") return { label: "Blocked", reason: "Pending approval" };
-  if (status === "DENIED") return { label: "Blocked", reason: "Denied" };
-  return { label: "Has access", reason: "Approved + Active" };
-}
-
 export function InterpreterAdminControls(props: Props) {
   const [isActive, setIsActive] = useState(props.isActive);
 
@@ -63,8 +56,6 @@ export function InterpreterAdminControls(props: Props) {
   // Split transitions so the UI can show which section is saving
   const [isToggling, startToggle] = useTransition();
   const [isSavingCore, startSaveCore] = useTransition();
-
-  const effectiveStatus = useMemo(() => accessState(props.status, isActive), [props.status, isActive]);
 
   // Client-side sanity check (server still validates)
   const expError = useMemo(() => {
@@ -90,7 +81,7 @@ export function InterpreterAdminControls(props: Props) {
           toast.success(res.isActive ? "Activated" : "Deactivated", {
             description: res.isActive
               ? "Interpreter is eligible again (if approved)."
-              : "Interpreter is now blocked from interpreter pages and APIs.",
+              : "Interpreter is blocked from interpreter pages and protected APIs.",
           });
           setNote("");
           setConfirmOpen(false);
@@ -132,83 +123,8 @@ export function InterpreterAdminControls(props: Props) {
   const anyPending = isToggling || isSavingCore;
 
   return (
-    <section className="space-y-4">
-      {/* Eligibility Control */}
-      <div className="rounded-3xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <div className="text-sm font-semibold tracking-tight text-zinc-950 dark:text-white">
-                Eligibility
-              </div>
-              {isToggling ? (
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">Saving…</span>
-              ) : null}
-            </div>
-
-            <div className="text-sm text-zinc-600 dark:text-zinc-300">
-              Active interpreters can access the interpreter app{" "}
-              <span className="font-medium">only if approved</span>. Inactive interpreters are blocked
-              from interpreter pages and protected APIs.
-            </div>
-
-            {/* Quick access state line */}
-            <div className="mt-2 inline-flex items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
-              <span className={effectiveStatus.label === "Has access" ? "font-medium" : "font-medium"}>
-                {effectiveStatus.label}
-              </span>
-              <span className="text-zinc-500 dark:text-zinc-400">·</span>
-              <span className="text-zinc-600 dark:text-zinc-300">{effectiveStatus.reason}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="rounded-full">
-              {isActive ? "ACTIVE" : "INACTIVE"}
-            </Badge>
-            <Badge variant="secondary" className="rounded-full">
-              {props.status}
-            </Badge>
-          </div>
-        </div>
-
-        <Separator className="my-4 opacity-60" />
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-              Admin note (optional)
-            </div>
-            <input
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Optional note for audit… (applies to next action you take)"
-              className="h-11 w-full rounded-2xl border border-zinc-200 bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-zinc-800 dark:bg-zinc-900"
-              disabled={anyPending}
-            />
-            <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
-              Stored in audit log. Keep it short and factual.
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 sm:justify-end">
-            <Button
-              className={[
-                "h-11 rounded-2xl",
-                isActive
-                  ? "bg-rose-600 hover:bg-rose-600/90"
-                  : "bg-emerald-600 hover:bg-emerald-600/90",
-              ].join(" ")}
-              disabled={anyPending}
-              onClick={() => setConfirmOpen(true)}
-            >
-              {isToggling ? "Saving…" : isActive ? "Deactivate" : "Activate"}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Core profile editing */}
+    <section className="space-y-6">
+      {/* Core profile editing FIRST */}
       <div className="rounded-3xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -218,11 +134,6 @@ export function InterpreterAdminControls(props: Props) {
             {isSavingCore ? (
               <span className="text-xs text-zinc-500 dark:text-zinc-400">Saving…</span>
             ) : null}
-          </div>
-
-          <div className="text-sm text-zinc-600 dark:text-zinc-300">
-            Editable fields are limited to: languages, certifications, experience level. Contact and booking
-            data remain read-only in this sprint.
           </div>
         </div>
 
@@ -256,7 +167,7 @@ export function InterpreterAdminControls(props: Props) {
             <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Rules</div>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-zinc-600 dark:text-zinc-300">
               <li>Max 25 items per list.</li>
-              <li>Duplicates removed automatically.</li>
+              <li>Duplicates will removed automatically.</li>
               <li>Experience must be a valid number (0–60).</li>
             </ul>
           </div>
@@ -273,6 +184,70 @@ export function InterpreterAdminControls(props: Props) {
         </div>
       </div>
 
+      {/* Eligibility control LAST (compact) */}
+      <div className="rounded-3xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="text-sm font-semibold tracking-tight text-zinc-950 dark:text-white">
+                Eligibility
+              </div>
+              {isToggling ? (
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">Saving…</span>
+              ) : null}
+            </div>
+
+            <div className="text-sm text-zinc-600 dark:text-zinc-300">
+              Toggle interpreter eligibility.
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="rounded-full">
+              {isActive ? "ACTIVE" : "INACTIVE"}
+            </Badge>
+            <Badge variant="secondary" className="rounded-full">
+              {props.status}
+            </Badge>
+          </div>
+        </div>
+
+        <Separator className="my-4 opacity-60" />
+
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div className="space-y-1">
+            <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              Admin note (optional)
+            </div>
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Optional note for audit… (applies to next action)"
+              className="h-11 w-full rounded-2xl border border-zinc-200 bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-zinc-800 dark:bg-zinc-900"
+              disabled={anyPending}
+            />
+            <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              Stored in audit log. Keep it short and factual.
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:justify-end">
+            <Button
+              className={[
+                "h-11 rounded-2xl",
+                isActive
+                  ? "bg-rose-600 hover:bg-rose-600/90"
+                  : "bg-emerald-600 hover:bg-emerald-600/90",
+              ].join(" ")}
+              disabled={anyPending}
+              onClick={() => setConfirmOpen(true)}
+            >
+              {isToggling ? "Saving…" : isActive ? "Deactivate" : "Activate"}
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Confirm dialog */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="rounded-3xl">
@@ -282,8 +257,8 @@ export function InterpreterAdminControls(props: Props) {
             </DialogTitle>
             <DialogDescription>
               {nextActive
-                ? "Activating restores system eligibility. If the interpreter is approved, they regain access immediately."
-                : "Deactivating blocks interpreter access to protected pages and APIs immediately (even if approved)."}
+                ? "Activating restores eligibility. Approved interpreters regain access immediately."
+                : "Deactivating blocks access to interpreter pages and protected APIs immediately."}
             </DialogDescription>
           </DialogHeader>
 

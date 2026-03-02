@@ -20,7 +20,7 @@ function parseDateParam(v: string | null) {
 }
 
 export async function GET(req: Request) {
-  const profile = await requireInterpreterEligible(); // ✅ No leaks (APPROVED + ACTIVE only)
+  const profile = await requireInterpreterEligible();
 
   const url = new URL(req.url);
 

@@ -1,7 +1,7 @@
 // app/admin/assignments/[id]/ui.tsx
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
 import {
   updateAssignmentAction,
@@ -11,7 +11,6 @@ import {
   removeInterpreterAction,
 } from "./actions";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import {
@@ -82,29 +81,20 @@ type Props = {
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
-    month: "short", day: "numeric",
-    hour: "numeric", minute: "2-digit", hour12: true,
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
   });
 }
 
 function toLocalInputValue(iso: string) {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function StatusBadge({ status }: { status: Status }) {
-  const cls: Record<Status, string> = {
-    OPEN: "bg-sky-500/10 text-sky-700 border-sky-500/20 dark:text-sky-300",
-    ASSIGNED: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-300",
-    COMPLETED: "bg-zinc-500/10 text-zinc-600 border-zinc-500/20 dark:text-zinc-400",
-    CANCELLED: "bg-rose-500/10 text-rose-700 border-rose-500/20 dark:text-rose-300",
-  };
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${cls[status]}`}>
-      {status}
-    </span>
-  );
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
 }
 
 // ─── Interpreter Selector ─────────────────────────────────────────────────────
@@ -117,6 +107,7 @@ function InterpreterSelector({
   isPending,
   needed,
   assignedCount,
+  hideAssigned = true,
 }: {
   interpreters: EligibleInterpreter[];
   assignedIds: Set<string>;
@@ -125,20 +116,26 @@ function InterpreterSelector({
   isPending: boolean;
   needed: number;
   assignedCount: number;
+  hideAssigned?: boolean;
 }) {
   const [q, setQ] = useState("");
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
-    if (!query) return interpreters;
-    return interpreters.filter(
+
+    let list = interpreters;
+    if (hideAssigned) list = list.filter((i) => !assignedIds.has(i.id));
+
+    if (!query) return list;
+
+    return list.filter(
       (i) =>
         i.label.toLowerCase().includes(query) ||
         i.email?.toLowerCase().includes(query) ||
         i.location?.toLowerCase().includes(query) ||
         i.languages.some((l) => l.toLowerCase().includes(query))
     );
-  }, [interpreters, q]);
+  }, [interpreters, q, hideAssigned, assignedIds]);
 
   return (
     <div className="space-y-3">
@@ -161,48 +158,42 @@ function InterpreterSelector({
       />
 
       <div className="max-h-64 overflow-auto space-y-1.5 pr-1">
-        {filtered.map((i) => {
-          const isAssigned = assignedIds.has(i.id);
-          return (
-            <div
-              key={i.id}
-              className={[
-                "flex items-center justify-between rounded-xl border px-3 py-2.5 transition-colors",
-                isAssigned
-                  ? "border-emerald-500/30 bg-emerald-500/5 dark:border-emerald-500/20"
-                  : "border-zinc-100 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900",
-              ].join(" ")}
-            >
-              <div className="min-w-0">
-                <div className="text-sm font-medium text-zinc-950 dark:text-white truncate">{i.label}</div>
-                <div className="text-xs text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
-                  {[i.email, i.location].filter(Boolean).join(" · ")}
-                </div>
-                {i.languages.length > 0 && (
-                  <div className="text-[11px] text-zinc-300 dark:text-zinc-600 mt-0.5 truncate">
-                    {i.languages.slice(0, 3).join(", ")}
-                  </div>
-                )}
+        {filtered.map((i) => (
+          <div
+            key={i.id}
+            className="flex items-center justify-between rounded-xl border px-3 py-2.5 transition-colors border-zinc-100 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900"
+          >
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-zinc-950 dark:text-white truncate">
+                {i.label}
               </div>
-
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => isAssigned ? onRemove(i.id) : onAssign(i.id)}
-                className={[
-                  "ml-3 flex-shrink-0 h-8 rounded-lg px-3 text-xs font-medium transition-colors",
-                  isAssigned
-                    ? "bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
-                    : "bg-zinc-950 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950",
-                ].join(" ")}
-              >
-                {isAssigned ? "Remove" : "Assign"}
-              </button>
+              <div className="text-xs text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
+                {[i.email, i.location].filter(Boolean).join(" · ")}
+              </div>
+              {i.languages.length > 0 && (
+                <div className="text-[11px] text-zinc-300 dark:text-zinc-600 mt-0.5 truncate">
+                  {i.languages.slice(0, 3).join(", ")}
+                </div>
+              )}
             </div>
-          );
-        })}
+
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => onAssign(i.id)}
+              className="ml-3 flex-shrink-0 h-8 rounded-lg px-3 text-xs font-medium transition-colors bg-zinc-950 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950"
+            >
+              Assign
+            </button>
+          </div>
+        ))}
+
         {filtered.length === 0 && (
-          <div className="py-6 text-center text-sm text-zinc-400">No interpreters match.</div>
+          <div className="py-6 text-center text-sm text-zinc-400">
+            {hideAssigned && assignedCount > 0
+              ? "No more eligible interpreters (everyone is assigned)."
+              : "No interpreters match."}
+          </div>
         )}
       </div>
     </div>
@@ -214,8 +205,14 @@ function InterpreterSelector({
 export function AssignmentCommandPanel({ assignment, eligibleInterpreters, auditEvents }: Props) {
   const [isPending, startTransition] = useTransition();
 
-  // Status
+  // Track what we believe the server status is *now* (so dirty-check works without refresh)
+  const [serverStatus, setServerStatus] = useState<Status>(assignment.status);
+
+  // The dropdown / intended status value
   const [status, setStatus] = useState<Status>(assignment.status);
+
+  // If admin manually touched the status dropdown, we stop auto-syncing it
+  const [statusTouched, setStatusTouched] = useState(false);
 
   // Visibility
   const [mode, setMode] = useState<"ALL" | "RESTRICTED">(assignment.visibilityMode);
@@ -247,6 +244,7 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
   );
 
   const assignedCount = activeAssignedIds.size;
+  const isFullyStaffed = assignedCount >= assignment.interpretersNeeded;
 
   function run(fn: () => Promise<void>) {
     startTransition(async () => {
@@ -258,13 +256,42 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
     });
   }
 
+  // ✅ Auto-sync status select when staffing changes, but only if admin hasn't manually touched it
+  useEffect(() => {
+    if (statusTouched) return;
+
+    // If job is completed/cancelled, never auto-override the selection
+    if (serverStatus === "COMPLETED" || serverStatus === "CANCELLED") return;
+
+    if (isFullyStaffed) {
+      // server auto-set to ASSIGNED — reflect it in UI instantly
+      setServerStatus("ASSIGNED");
+      setStatus("ASSIGNED");
+    } else {
+      // if it was previously ASSIGNED due to staffing, revert to OPEN
+      if (serverStatus === "ASSIGNED") {
+        setServerStatus("OPEN");
+        setStatus("OPEN");
+      }
+    }
+  }, [isFullyStaffed, statusTouched, serverStatus]);
+
   async function handleAssign(interpreterProfileId: string) {
     run(async () => {
       await assignInterpreterAction(assignment.id, interpreterProfileId, note);
+
       const interp = eligibleInterpreters.find((i) => i.id === interpreterProfileId);
+
+      // optimistic links update
       setInterpreterLinks((prev) => {
         const existing = prev.find((l) => l.userProfileId === interpreterProfileId);
-        if (existing) return prev.map((l) => l.userProfileId === interpreterProfileId ? { ...l, status: "ASSIGNED" as const, removedAt: null } : l);
+        if (existing) {
+          return prev.map((l) =>
+            l.userProfileId === interpreterProfileId
+              ? { ...l, status: "ASSIGNED" as const, removedAt: null }
+              : l
+          );
+        }
         return [
           ...prev,
           {
@@ -279,25 +306,37 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
           },
         ];
       });
+
       toast.success("Interpreter assigned");
+      setNote("");
     });
   }
 
   async function handleRemove(interpreterProfileId: string) {
     run(async () => {
       await removeInterpreterAction(assignment.id, interpreterProfileId, note);
+
       setInterpreterLinks((prev) =>
-        prev.map((l) => l.userProfileId === interpreterProfileId ? { ...l, status: "REMOVED" as const, removedAt: new Date().toISOString() } : l)
+        prev.map((l) =>
+          l.userProfileId === interpreterProfileId
+            ? { ...l, status: "REMOVED" as const, removedAt: new Date().toISOString() }
+            : l
+        )
       );
+
       toast.success("Interpreter removed");
+      setNote("");
     });
   }
 
   async function handleStatusUpdate() {
     run(async () => {
       await setStatusAction(assignment.id, status, note);
+      setServerStatus(status); // ✅ now UI considers it "saved"
       toast.success(`Status set to ${status}`);
       setNote("");
+      // once admin manually applies, we treat as touched
+      setStatusTouched(true);
     });
   }
 
@@ -329,7 +368,7 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
     });
   }
 
-  const statusDirty = status !== assignment.status;
+  const statusDirty = status !== serverStatus;
 
   return (
     <div className="space-y-4">
@@ -337,9 +376,12 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
       <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <div className="text-sm font-semibold text-zinc-950 dark:text-white">Assign interpreters</div>
+            <div className="text-sm font-semibold text-zinc-950 dark:text-white">
+              Assign interpreters
+            </div>
             <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Status auto-updates to ASSIGNED when {assignment.interpretersNeeded} interpreter{assignment.interpretersNeeded !== 1 ? "s are" : " is"} filled
+              Status auto-updates to ASSIGNED when {assignment.interpretersNeeded} interpreter
+              {assignment.interpretersNeeded !== 1 ? "s are" : " is"} filled
             </div>
           </div>
           {isPending && <span className="text-xs text-zinc-400">Saving…</span>}
@@ -348,13 +390,20 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
         {/* Current assigned list */}
         {interpreterLinks.filter((l) => l.status === "ASSIGNED").length > 0 && (
           <div className="mb-4 space-y-1.5">
-            <div className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-2">Currently assigned</div>
+            <div className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-2">
+              Currently assigned
+            </div>
             {interpreterLinks
               .filter((l) => l.status === "ASSIGNED")
               .map((l) => (
-                <div key={l.linkId} className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5">
+                <div
+                  key={l.linkId}
+                  className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5"
+                >
                   <div>
-                    <div className="text-sm font-medium text-zinc-950 dark:text-white">{l.label}</div>
+                    <div className="text-sm font-medium text-zinc-950 dark:text-white">
+                      {l.label}
+                    </div>
                     <div className="text-xs text-zinc-400 mt-0.5">{l.email ?? l.location ?? "—"}</div>
                   </div>
                   <button
@@ -378,6 +427,7 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
           isPending={isPending}
           needed={assignment.interpretersNeeded}
           assignedCount={assignedCount}
+          hideAssigned
         />
       </div>
 
@@ -385,12 +435,21 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Status control */}
         <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-5">
-          <div className="text-sm font-semibold text-zinc-950 dark:text-white mb-1">Status override</div>
+          <div className="text-sm font-semibold text-zinc-950 dark:text-white mb-1">
+            Status override
+          </div>
           <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">
             Status auto-managed by interpreter fill. Override manually if needed.
           </div>
 
-          <Select value={status} onValueChange={(v) => setStatus(v as Status)} disabled={isPending}>
+          <Select
+            value={status}
+            onValueChange={(v) => {
+              setStatus(v as Status);
+              setStatusTouched(true);
+            }}
+            disabled={isPending}
+          >
             <SelectTrigger className="h-11 rounded-xl bg-white dark:bg-zinc-900">
               <SelectValue />
             </SelectTrigger>
@@ -451,14 +510,18 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
               {eligibleInterpreters.map((i) => {
                 const checked = allowed.includes(i.id);
                 return (
-                  <label key={i.id} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer">
+                  <label
+                    key={i.id}
+                    className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer"
+                  >
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={(e) => {
                         setAllowed((prev) => {
                           const s = new Set(prev);
-                          if (e.target.checked) s.add(i.id); else s.delete(i.id);
+                          if (e.target.checked) s.add(i.id);
+                          else s.delete(i.id);
                           return Array.from(s);
                         });
                       }}
@@ -484,7 +547,9 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
 
       {/* Shared note field */}
       <div className="rounded-2xl border border-zinc-100 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50 px-5 py-4">
-        <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-2">Audit note (applies to next action)</div>
+        <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-2">
+          Audit note (applies to next action)
+        </div>
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -495,28 +560,47 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
 
       {/* Audit log */}
       <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-5">
-        <div className="text-sm font-semibold text-zinc-950 dark:text-white mb-4">Audit log</div>
-        {auditEvents.length === 0 ? (
-          <div className="text-sm text-zinc-400">No events yet.</div>
-        ) : (
-          <div className="space-y-2 max-h-72 overflow-auto">
-            {auditEvents.map((e) => (
-              <div key={e.id} className="flex items-start gap-3 rounded-xl border border-zinc-100 dark:border-zinc-800 px-3 py-2.5">
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-mono font-medium text-zinc-700 dark:text-zinc-300">
-                    {e.action}
+        <details className="group" open>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 select-none">
+            <div className="flex items-center gap-2">
+              {/* side arrow */}
+              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Audit log</div>
+              <span className="text-xs text-zinc-400">({auditEvents.length})</span>
+            </div>
+
+            <span className="text-xs text-zinc-400 group-open:hidden">Expand</span>
+            <span className="text-xs text-zinc-400 hidden group-open:inline">Collapse</span>
+          </summary>
+
+          <div className="mt-4">
+            {auditEvents.length === 0 ? (
+              <div className="text-sm text-zinc-400">No events yet.</div>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-auto">
+                {auditEvents.map((e) => (
+                  <div
+                    key={e.id}
+                    className="flex items-start gap-3 rounded-xl border border-zinc-100 dark:border-zinc-800 px-3 py-2.5"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-mono font-medium text-zinc-700 dark:text-zinc-300">
+                        {e.action}
+                      </div>
+                      <div className="text-[11px] text-zinc-400 mt-0.5">
+                        {e.actor ?? "system"} · {fmt(e.createdAt)}
+                      </div>
+                      {e.note && (
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 italic">
+                          {e.note}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-zinc-400 mt-0.5">
-                    {e.actor ?? "system"} · {fmt(e.createdAt)}
-                  </div>
-                  {e.note && (
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 italic">{e.note}</div>
-                  )}
-                </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
+        </details>
       </div>
 
       {/* Edit dialog */}
@@ -549,7 +633,12 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
           </div>
 
           <div className="flex gap-2">
-            <Button variant="secondary" className="flex-1 h-11 rounded-xl" onClick={() => setEditOpen(false)} disabled={isPending}>
+            <Button
+              variant="secondary"
+              className="flex-1 h-11 rounded-xl"
+              onClick={() => setEditOpen(false)}
+              disabled={isPending}
+            >
               Cancel
             </Button>
             <Button

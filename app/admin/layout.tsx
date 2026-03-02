@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <AppShell
       accent="admin"
       title="Admin"
-      subtitle="Create assignments (primary) and manage access (secondary)."
+      subtitle="Create assignments and manage access."
       nav={[
         { href: "/admin", label: "Overview" },
         { href: "/admin/assignments", label: "Assignments", badge: "Primary" },

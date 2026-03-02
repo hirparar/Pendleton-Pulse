@@ -38,9 +38,6 @@ export default async function InterpreterDetailPage({ params }: PageProps) {
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white">
             {user.interpreterProfile?.displayName ?? user.email ?? "Interpreter"}
           </h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            Manage interpreter eligibility (Active/Inactive) and update core profile fields.
-          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -59,7 +56,25 @@ export default async function InterpreterDetailPage({ params }: PageProps) {
         </div>
       </header>
 
-      {/* PHASE 3 CONTROLS */}
+      {/* PROFILE FIRST */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Panel title="Profile">
+          <Row label="Display name" value={user.interpreterProfile?.displayName ?? "—"} />
+          <Row label="Location" value={user.interpreterProfile?.location ?? "—"} />
+          <Row label="Phone" value={user.interpreterProfile?.phone ?? "—"} />
+          <Row label="Bio" value={user.interpreterProfile?.bio?.trim() ? "Present" : "—"} />
+        </Panel>
+
+        <Panel title="Access review">
+          <Row label="Status" value={user.status} />
+          <Row label="Active" value={user.isActive ? "true" : "false"} />
+          <Row label="Reviewed by" value={user.reviewedBy ?? "—"} />
+          <Row label="Reviewed at" value={user.reviewedAt ? formatDateTimeISO(user.reviewedAt) : "—"} />
+          <Row label="Note" value={user.reviewNote ?? "—"} />
+        </Panel>
+      </div>
+
+      {/* CONTROLS (core first, eligibility last) */}
       <InterpreterAdminControls
         userProfileId={user.id}
         isActive={user.isActive}
@@ -71,59 +86,47 @@ export default async function InterpreterDetailPage({ params }: PageProps) {
         }}
       />
 
-      <section className="grid gap-4 lg:grid-cols-3">
-        <Panel title="Identity">
-          <Row label="Email" value={user.email ?? "—"} />
-          <Row label="Clerk ID" value={user.clerkUserId} />
-          <Row label="Created" value={formatDateTimeISO(user.createdAt)} />
-          <Row label="Updated" value={formatDateTimeISO(user.updatedAt)} />
-        </Panel>
+      {/* AUDIT COLLAPSIBLE */}
+      <section className="rounded-3xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+        <details className="group">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+            <div className="text-sm font-semibold tracking-tight text-zinc-950 dark:text-white">
+              Audit events
+            </div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400 group-open:hidden">
+              Expand
+            </div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400 hidden group-open:block">
+              Collapse
+            </div>
+          </summary>
 
-        <Panel title="Profile (read-only fields)">
-          <Row label="Display name" value={user.interpreterProfile?.displayName ?? "—"} />
-          <Row label="Location" value={user.interpreterProfile?.location ?? "—"} />
-          <Row label="Phone" value={user.interpreterProfile?.phone ?? "—"} />
-          <Row label="Bio" value={user.interpreterProfile?.bio?.trim()?.slice(0, 28) ? "Present" : "—"} />
-        </Panel>
-
-        <Panel title="Access review">
-          <Row label="Status" value={user.status} />
-          <Row label="Active" value={user.isActive ? "true" : "false"} />
-          <Row label="Reviewed by" value={user.reviewedBy ?? "—"} />
-          <Row
-            label="Reviewed at"
-            value={user.reviewedAt ? formatDateTimeISO(user.reviewedAt) : "—"}
-          />
-          <Row label="Note" value={user.reviewNote ?? "—"} />
-        </Panel>
-      </section>
-
-      <Panel title="Audit events">
-        <div className="space-y-3">
-          {user.auditEvents.length === 0 ? (
-            <div className="text-sm text-zinc-600 dark:text-zinc-300">No events yet.</div>
-          ) : (
-            user.auditEvents.map((e) => (
-              <div
-                key={e.id}
-                className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
-              >
-                <div className="space-y-1">
-                  <div className="text-sm font-medium text-zinc-950 dark:text-white">
-                    {e.action}
+          <div className="mt-4 space-y-3">
+            {user.auditEvents.length === 0 ? (
+              <div className="text-sm text-zinc-600 dark:text-zinc-300">No events yet.</div>
+            ) : (
+              user.auditEvents.map((e) => (
+                <div
+                  key={e.id}
+                  className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+                >
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-zinc-950 dark:text-white">
+                      {e.action}
+                    </div>
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Actor: {e.actor ?? "—"} · {formatDateTimeISO(e.createdAt)}
+                    </div>
+                    {e.note ? (
+                      <div className="text-sm text-zinc-700 dark:text-zinc-300">{e.note}</div>
+                    ) : null}
                   </div>
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Actor: {e.actor ?? "—"} · {formatDateTimeISO(e.createdAt)}
-                  </div>
-                  {e.note ? (
-                    <div className="text-sm text-zinc-700 dark:text-zinc-300">{e.note}</div>
-                  ) : null}
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-      </Panel>
+              ))
+            )}
+          </div>
+        </details>
+      </section>
     </MotionIn>
   );
 }

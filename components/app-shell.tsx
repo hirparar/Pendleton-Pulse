@@ -68,20 +68,6 @@ export function AppShell({
               </Link>
             ))}
           </nav>
-
-          <div className="mt-auto px-2 pt-6">
-            <div
-              className={cn(
-                "rounded-3xl border p-4",
-                "border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950"
-              )}
-            >
-              <div className="text-xs font-semibold tracking-tight">Jobs-first</div>
-              <div className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">
-                The core workflow is posting and discovering interpreting jobs.
-              </div>
-            </div>
-          </div>
         </aside>
 
         {/* Main */}

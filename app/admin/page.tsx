@@ -10,7 +10,7 @@ export default async function AdminHome() {
           Overview
         </h1>
         <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          System health at a glance. Metrics are read-only in this sprint.
+          System health at a glance.
         </p>
       </header>
 
@@ -33,20 +33,6 @@ export default async function AdminHome() {
           body="Admins will post interpreting jobs."
           href="/admin/assignments"
         />
-      </section>
-
-      <section className="rounded-3xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="text-sm font-semibold tracking-tight text-zinc-950 dark:text-white">
-          What's next
-        </div>
-        <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-          Jobs will become the primary workflow once assignments ship:
-          <span className="font-medium text-zinc-900 dark:text-white">
-            {" "}
-            post jobs → match interpreters → manage assignments
-          </span>
-          .
-        </div>
       </section>
     </MotionIn>
   );
