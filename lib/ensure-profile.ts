@@ -17,12 +17,28 @@ export async function ensureUserProfile() {
   const primaryEmail =
     user.emailAddresses.find((e) => e.id === user.primaryEmailAddressId)?.emailAddress ?? null;
 
-  return prisma.userProfile.create({
-    data: {
-      clerkUserId: userId,
-      email: primaryEmail,
-      role: "INTERPRETER",
-      status: "PENDING",
-    },
+  return prisma.$transaction(async (tx) => {
+    const profile = await tx.userProfile.upsert({
+      where: { clerkUserId: userId },
+      create: {
+        clerkUserId: userId,
+        email: primaryEmail,
+        role: "INTERPRETER",
+        status: "PENDING",
+      },
+      update: {
+        email: primaryEmail ?? undefined,
+      },
+    });
+
+    if (profile.role === "INTERPRETER") {
+      await tx.interpreterProfile.upsert({
+        where: { userProfileId: profile.id },
+        create: { userProfileId: profile.id },
+        update: {},
+      });
+    }
+
+    return profile;
   });
 }

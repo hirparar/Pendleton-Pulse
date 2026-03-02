@@ -139,6 +139,44 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### Docker
+
+This repo now includes a production-oriented Docker setup for the app container. It uses an existing PostgreSQL instance instead of starting a second database container.
+
+1. Copy the example env file and add your Clerk keys:
+
+```bash
+cp .env.example .env
+```
+
+2. Make sure your PostgreSQL instance is already running on your machine.
+
+By default, the app container connects to:
+
+```env
+DOCKER_DATABASE_URL="postgresql://postgres:postgres@host.docker.internal:55432/pendleton_connect?schema=public"
+```
+
+3. Start the app container:
+
+```bash
+docker compose up --build
+```
+
+4. Open the app at [http://localhost:3000](http://localhost:3000).
+
+Notes:
+- The app container applies the Prisma schema automatically on startup.
+- Clerk public env values are used during the Docker image build, so rebuild the app image after changing Clerk keys or redirect URLs.
+- Docker Compose uses `DOCKER_DATABASE_URL` inside the container because `localhost` from inside Docker does not point to your Mac host.
+- To stop the stack, run `docker compose down`.
+
+#### Access from other devices on your network
+
+- Keep the stack running with `docker compose up --build`.
+- Find your machine's local IP address and open `http://YOUR_IP:3000` from another device on the same network.
+- In Clerk, add that base URL to your allowed redirect URLs / origins if sign-in is blocked.
+
 ---
 
 ## Roles & Access

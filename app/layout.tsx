@@ -1,25 +1,7 @@
 import { type Metadata } from 'next'
-import {
-  ClerkProvider,
-  SignInButton,
-  SignUpButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from '@clerk/nextjs'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 import { Toaster } from "sonner";
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-})
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-})
 
 export const metadata: Metadata = {
   title: 'Clerk Next.js Quickstart',
@@ -34,7 +16,7 @@ export default function RootLayout({
   return (
     <ClerkProvider afterSignOutUrl="/sign-in">
       <html lang="en">
-        <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}>
+        <body className="min-h-screen antialiased">
           {children}
           <Toaster richColors closeButton position="top-right" />
         </body>
