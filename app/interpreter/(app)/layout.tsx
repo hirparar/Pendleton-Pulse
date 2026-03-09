@@ -15,10 +15,10 @@ export default async function InterpreterApprovedLayout({
       title="Jobs"
       subtitle="Discover interpreting jobs posted by admins. Your feed updates as new jobs are posted."
       nav={[
-        { href: "/interpreter/dashboard", label: "Job feed", badge: "Primary" },
+        { href: "/interpreter/dashboard", label: "Overview" },
+        { href: "/interpreter/jobs", label: "Job feed", badge: "Primary" },
         { href: "/interpreter/availability", label: "Availability" },
         { href: "/interpreter/profile", label: "Profile" },
-        { href: "/interpreter/support", label: "Support" },
       ]}
       right={<UserCluster status={profile.status} />}
     >

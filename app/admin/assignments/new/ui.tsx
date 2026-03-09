@@ -5,66 +5,216 @@ import { useState, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createAssignmentAction } from "./actions";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+
+const DELIVERY_MODES = [
+  { value: "IN_PERSON",    label: "In-person",         desc: "On-site at client location" },
+  { value: "REMOTE",       label: "Phone / Remote",     desc: "Over-the-phone interpreting" },
+  { value: "VIDEO_RELAY",  label: "Video relay (VRS)",  desc: "Video relay service" },
+  { value: "VIDEO_REMOTE", label: "Video remote (VRI)", desc: "Video remote interpreting" },
+] as const;
+
+const ASSIGNMENT_TYPES = [
+  "Medical", "Legal / Court", "Mental health", "Educational",
+  "Conference", "Corporate", "Government", "Community", "Other",
+];
+
+const COMPENSATION_UNITS = ["per hour", "flat rate", "per day", "per session"];
 
 function nowLocalISO() {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
-
-function oneHourLater() {
-  const d = new Date();
-  d.setHours(d.getHours() + 1);
+function offsetISO(hours: number) {
+  const d = new Date(); d.setHours(d.getHours() + hours);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// ─── small UI atoms ───────────────────────────────────────────────────────────
+
+const inp = "block w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition focus:border-zinc-400 focus:ring-4 focus:ring-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-800/60";
+
+function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden">
+      <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">{title}</h2>
+      </div>
+      <div className="p-6">{children}</div>
+    </div>
+  );
+}
+
+function F({ label, hint, required, error, children }: {
+  label: string; hint?: string; required?: boolean; error?: string | null; children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+        {label}{required && <span className="text-rose-500 ml-0.5">*</span>}
+      </label>
+      {hint && <p className="mb-2 text-[11px] text-zinc-400 dark:text-zinc-500">{hint}</p>}
+      {children}
+      {error && <p className="mt-1.5 text-xs text-rose-600 dark:text-rose-400">{error}</p>}
+    </div>
+  );
+}
+
+function TagInput({ tags, onChange, placeholder }: {
+  tags: string[]; onChange: (t: string[]) => void; placeholder: string;
+}) {
+  const [val, setVal] = useState("");
+  function add() {
+    const v = val.trim(); if (!v || tags.includes(v)) { setVal(""); return; }
+    onChange([...tags, v]); setVal("");
+  }
+  return (
+    <div className="space-y-2">
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {tags.map((t) => (
+            <span key={t} className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              {t}
+              <button type="button" onClick={() => onChange(tags.filter((x) => x !== t))}
+                className="text-zinc-400 hover:text-rose-500 transition-colors">×</button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-2">
+        <input value={val} onChange={(e) => setVal(e.target.value)} placeholder={placeholder}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+          className={inp} />
+        <button type="button" onClick={add}
+          className="shrink-0 rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800">
+          Add
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── main form ────────────────────────────────────────────────────────────────
+
 export function CreateAssignmentForm() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const [clientName, setClientName] = useState("");
-  const [languagePair, setLanguagePair] = useState("");
-  const [assignmentType, setAssignmentType] = useState("");
-  const [location, setLocation] = useState("");
-  const [scheduledStart, setScheduledStart] = useState(nowLocalISO());
-  const [scheduledEnd, setScheduledEnd] = useState(oneHourLater());
-  const [interpretersNeeded, setInterpretersNeeded] = useState("1");
-  const [specialNotes, setSpecialNotes] = useState("");
+  // ── Core fields
+  const [clientName,        setClientName]        = useState("");
+  const [clientOrg,         setClientOrg]         = useState("");
+  const [languagePair,      setLanguagePair]      = useState("");
+  const [assignmentType,    setAssignmentType]    = useState("");
+  const [customType,        setCustomType]        = useState("");
+  const [deliveryMode,      setDeliveryMode]      = useState<"IN_PERSON"|"REMOTE"|"VIDEO_RELAY"|"VIDEO_REMOTE">("IN_PERSON");
+
+  // ── Scheduling
+  const [scheduledStart,    setScheduledStart]    = useState(nowLocalISO());
+  const [scheduledEnd,      setScheduledEnd]      = useState(offsetISO(2));
+  const [interpretersNeeded,setInterpretersNeeded]= useState("1");
+  const [isUrgent,          setIsUrgent]          = useState(false);
+
+  // ── In-person logistics
+  const [location,          setLocation]          = useState("");
+  const [address,           setAddress]           = useState("");
+  const [roomFloor,         setRoomFloor]         = useState("");
+  const [dresscode,         setDresscode]         = useState("");
+  const [parkingNotes,      setParkingNotes]      = useState("");
+  const [accessInstructions,setAccessInstructions]= useState("");
+
+  // ── Remote logistics
+  const [meetingLink,       setMeetingLink]       = useState("");
+  const [meetingPassword,   setMeetingPassword]   = useState("");
+  const [platformNotes,     setPlatformNotes]     = useState("");
+
+  // ── Requirements
+  const [reqLanguage,       setReqLanguage]       = useState("");
+  const [reqCerts,          setReqCerts]          = useState<string[]>([]);
+  const [reqExpYears,       setReqExpYears]       = useState("");
+  const [reqModes,          setReqModes]          = useState<string[]>([]);
+
+  // ── Compensation
+  const [compRate,          setCompRate]          = useState("");
+  const [compUnit,          setCompUnit]          = useState("per hour");
+  const [compNotes,         setCompNotes]         = useState("");
+  const [compVisible,       setCompVisible]       = useState(true);
+
+  // ── Notes
+  const [specialNotes,      setSpecialNotes]      = useState("");
+  const [internalNotes,     setInternalNotes]     = useState("");
+
+  const isRemote = ["REMOTE", "VIDEO_RELAY", "VIDEO_REMOTE"].includes(deliveryMode);
 
   const title = useMemo(() => {
     if (clientName && languagePair) return `${clientName} – ${languagePair}`;
     return clientName || "";
   }, [clientName, languagePair]);
 
-  const isValid = useMemo(
-    () => clientName.trim() && languagePair.trim() && assignmentType.trim() && location.trim() && scheduledStart && scheduledEnd,
-    [clientName, languagePair, assignmentType, location, scheduledStart, scheduledEnd]
-  );
-
-  function toISO(dtLocal: string) { return new Date(dtLocal).toISOString(); }
+  function validate(): boolean {
+    const e: Record<string, string> = {};
+    if (!clientName.trim())    e.clientName    = "Required";
+    if (!languagePair.trim())  e.languagePair  = "Required";
+    if (!assignmentType && !customType.trim()) e.assignmentType = "Required";
+    if (!location.trim())      e.location      = "Required";
+    const start = new Date(scheduledStart), end = new Date(scheduledEnd);
+    if (isNaN(start.getTime())) e.scheduledStart = "Invalid date";
+    if (isNaN(end.getTime()))   e.scheduledEnd   = "Invalid date";
+    if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end <= start)
+      e.scheduledEnd = "Must be after start time";
+    const n = parseInt(interpretersNeeded);
+    if (isNaN(n) || n < 1)    e.interpretersNeeded = "Must be at least 1";
+    if (isRemote && meetingLink && !meetingLink.startsWith("http"))
+      e.meetingLink = "Must be a valid URL";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
 
   function submit(mode: "save" | "view") {
-    if (!isValid) {
-      toast.error("Fill in all required fields");
-      return;
-    }
+    if (!validate()) { toast.error("Fix the errors before saving"); return; }
+
     startTransition(async () => {
       try {
+        const finalType = assignmentType === "Other" ? customType : assignmentType;
         const res = await createAssignmentAction({
           title,
           clientName,
+          clientOrganization: clientOrg || null,
           languagePair,
-          assignmentType,
-          location,
-          scheduledStart: toISO(scheduledStart),
-          scheduledEnd: toISO(scheduledEnd),
+          assignmentType: finalType,
+          deliveryMode,
+          scheduledStart: new Date(scheduledStart).toISOString(),
+          scheduledEnd:   new Date(scheduledEnd).toISOString(),
           interpretersNeeded,
-          specialNotes,
+          isUrgent,
+          // location
+          location,
+          address: address || null,
+          roomFloor: roomFloor || null,
+          dresscode: dresscode || null,
+          parkingNotes: parkingNotes || null,
+          accessInstructions: accessInstructions || null,
+          // remote
+          meetingLink:     meetingLink     || null,
+          meetingPassword: meetingPassword || null,
+          platformNotes:   platformNotes   || null,
+          // requirements
+          requiredLanguagePair:    reqLanguage || null,
+          requiredCertifications:  reqCerts,
+          requiredExperienceYears: reqExpYears ? parseInt(reqExpYears) : null,
+          requiredModes:           reqModes,
+          // compensation
+          compensationRate:      compRate ? parseFloat(compRate) : null,
+          compensationUnit:      compRate ? compUnit : null,
+          compensationNotes:     compNotes || null,
+          isCompensationVisible: compVisible,
+          // notes
+          specialNotes:  specialNotes  || null,
+          internalNotes: internalNotes || null,
         });
-        if (!res?.ok) throw new Error("Failed");
+
+        if (!res?.ok) throw new Error("Failed to create");
         toast.success("Assignment created");
         if (mode === "view") router.push(`/admin/assignments/${res.id}`);
         else router.push("/admin/assignments");
@@ -75,99 +225,268 @@ export function CreateAssignmentForm() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Action bar */}
-      <div className="sticky top-3 z-20 flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/90 px-5 py-3.5 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
+    <div className="space-y-5">
+
+      {/* Sticky action bar */}
+      <div className="sticky top-3 z-20 flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/95 px-5 py-3.5 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
         <div>
           <div className="text-sm font-semibold text-zinc-950 dark:text-white">
-            {title || "New assignment"}
+            {title || <span className="text-zinc-400 font-normal">New assignment</span>}
           </div>
-          <div className="text-xs text-zinc-400 mt-0.5">All fields marked * are required</div>
+          <div className="text-xs text-zinc-400 mt-0.5">Fields marked * are required</div>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" className="h-10 rounded-xl" disabled={isPending} onClick={() => submit("save")}>
+          <button type="button" disabled={isPending} onClick={() => submit("save")}
+            className="h-10 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
             {isPending ? "Saving…" : "Save"}
-          </Button>
-          <Button
-            className="h-10 rounded-xl bg-zinc-950 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950"
-            disabled={isPending || !isValid}
-            onClick={() => submit("view")}
-          >
-            {isPending ? "Saving…" : "Save & open"}
-          </Button>
+          </button>
+          <button type="button" disabled={isPending} onClick={() => submit("view")}
+            className="h-10 rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white hover:bg-zinc-700 transition-colors disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100">
+            {isPending ? "Saving…" : "Save & open →"}
+          </button>
         </div>
       </div>
 
-      {/* Fields */}
-      <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-5">
-        <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-4">Client & job info</div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <F label="Client name *" value={clientName} onChange={setClientName} placeholder="e.g. St. Mary Hospital" />
-          <F label="Language pair *" value={languagePair} onChange={setLanguagePair} placeholder="e.g. English → ASL" />
-          <F label="Assignment type *" value={assignmentType} onChange={setAssignmentType} placeholder="e.g. Medical, Legal, Conference" />
-          <F label="Location *" value={location} onChange={setLocation} placeholder="e.g. Toronto (in-person) / Remote" />
+      {/* ── Section 1: Client & job identity ──────────────────────────────── */}
+      <FieldGroup title="Client & job">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <F label="Client name" required error={errors.clientName}>
+            <input value={clientName} onChange={(e) => setClientName(e.target.value)}
+              placeholder="e.g. St. Mary Hospital" className={inp} />
+          </F>
+          <F label="Client organization" hint="Department, division, or sub-org (optional)">
+            <input value={clientOrg} onChange={(e) => setClientOrg(e.target.value)}
+              placeholder="e.g. Emergency Dept." className={inp} />
+          </F>
+          <F label="Language pair" required error={errors.languagePair}>
+            <input value={languagePair} onChange={(e) => setLanguagePair(e.target.value)}
+              placeholder="e.g. ASL-English, Spanish-English" className={inp} />
+          </F>
+          <F label="Assignment type" required error={errors.assignmentType}>
+            <select value={assignmentType} onChange={(e) => setAssignmentType(e.target.value)} className={inp}>
+              <option value="">Select type…</option>
+              {ASSIGNMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            {assignmentType === "Other" && (
+              <input value={customType} onChange={(e) => setCustomType(e.target.value)}
+                placeholder="Describe the type" className={inp + " mt-2"} />
+            )}
+          </F>
         </div>
-      </div>
+      </FieldGroup>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-5">
-        <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-4">Schedule & staffing</div>
-        <div className="grid gap-4 lg:grid-cols-3">
-          <F label="Start time *" type="datetime-local" value={scheduledStart} onChange={setScheduledStart} />
-          <F label="End time *" type="datetime-local" value={scheduledEnd} onChange={setScheduledEnd} />
-          <div>
-            <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-              Interpreters needed
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="50"
-              value={interpretersNeeded}
-              onChange={(e) => setInterpretersNeeded(e.target.value)}
-              className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
-            />
-            <p className="mt-1.5 text-[11px] text-zinc-400">Status auto-sets to ASSIGNED when filled</p>
+      {/* ── Section 2: Delivery mode ───────────────────────────────────────── */}
+      <FieldGroup title="Delivery mode">
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+          {DELIVERY_MODES.map((m) => {
+            const active = deliveryMode === m.value;
+            return (
+              <button key={m.value} type="button" onClick={() => setDeliveryMode(m.value)}
+                className={[
+                  "flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition-all",
+                  active
+                    ? "border-zinc-900 bg-zinc-900 dark:border-zinc-100 dark:bg-zinc-100"
+                    : "border-zinc-200 bg-white hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-600",
+                ].join(" ")}>
+                <span className={`text-sm font-semibold ${active ? "text-white dark:text-zinc-900" : "text-zinc-900 dark:text-zinc-100"}`}>{m.label}</span>
+                <span className={`text-[11px] leading-tight ${active ? "text-zinc-400 dark:text-zinc-500" : "text-zinc-500 dark:text-zinc-400"}`}>{m.desc}</span>
+              </button>
+            );
+          })}
+        </div>
+      </FieldGroup>
+
+      {/* ── Section 3: Schedule & staffing ────────────────────────────────── */}
+      <FieldGroup title="Schedule & staffing">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <F label="Start time" required error={errors.scheduledStart}>
+            <input type="datetime-local" value={scheduledStart}
+              onChange={(e) => setScheduledStart(e.target.value)} className={inp} />
+          </F>
+          <F label="End time" required error={errors.scheduledEnd}>
+            <input type="datetime-local" value={scheduledEnd}
+              onChange={(e) => setScheduledEnd(e.target.value)} className={inp} />
+          </F>
+          <F label="Interpreters needed" hint="Status auto-sets when filled">
+            <input type="number" min="1" max="50" value={interpretersNeeded}
+              onChange={(e) => setInterpretersNeeded(e.target.value)} className={inp} />
+            {errors.interpretersNeeded && <p className="mt-1 text-xs text-rose-500">{errors.interpretersNeeded}</p>}
+          </F>
+          <F label="Urgency">
+            <button type="button" onClick={() => setIsUrgent((v) => !v)}
+              className={[
+                "flex items-center gap-3 w-full rounded-xl border px-4 py-3 text-left transition-colors",
+                isUrgent
+                  ? "border-rose-300 bg-rose-50 dark:border-rose-700 dark:bg-rose-950/30"
+                  : "border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900",
+              ].join(" ")}>
+              <span className={`h-4 w-4 rounded border-2 flex items-center justify-center ${isUrgent ? "border-rose-500 bg-rose-500" : "border-zinc-300"}`}>
+                {isUrgent && <svg className="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
+              </span>
+              <span className={`text-sm font-medium ${isUrgent ? "text-rose-700 dark:text-rose-300" : "text-zinc-700 dark:text-zinc-300"}`}>
+                Mark as urgent
+              </span>
+            </button>
+          </F>
+        </div>
+      </FieldGroup>
+
+      {/* ── Section 4: Location / Remote ──────────────────────────────────── */}
+      {!isRemote ? (
+        <FieldGroup title="Location & access">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <F label="Location name" required error={errors.location}
+              hint="Short name shown in listings (e.g. St. Mary Hospital, Room 4B)">
+              <input value={location} onChange={(e) => setLocation(e.target.value)}
+                placeholder="e.g. St. Mary Hospital" className={inp} />
+            </F>
+            <F label="Full address">
+              <input value={address} onChange={(e) => setAddress(e.target.value)}
+                placeholder="123 Main St, Toronto, ON M5V 1A1" className={inp} />
+            </F>
+            <F label="Room / floor">
+              <input value={roomFloor} onChange={(e) => setRoomFloor(e.target.value)}
+                placeholder="e.g. 3rd Floor, Room 4B" className={inp} />
+            </F>
+            <F label="Dress code">
+              <input value={dresscode} onChange={(e) => setDresscode(e.target.value)}
+                placeholder="e.g. Business casual, Scrubs not required" className={inp} />
+            </F>
+            <F label="Parking" hint="Optional parking notes for the interpreter">
+              <input value={parkingNotes} onChange={(e) => setParkingNotes(e.target.value)}
+                placeholder="e.g. Free visitor parking in lot B" className={inp} />
+            </F>
+            <F label="Access instructions">
+              <input value={accessInstructions} onChange={(e) => setAccessInstructions(e.target.value)}
+                placeholder="e.g. Check in at front desk, ask for Dr. Smith" className={inp} />
+            </F>
+          </div>
+        </FieldGroup>
+      ) : (
+        <FieldGroup title="Remote details">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <F label="Location / description" required error={errors.location}
+              hint="Brief descriptor shown in the feed">
+              <input value={location} onChange={(e) => setLocation(e.target.value)}
+                placeholder="e.g. Remote – Zoom" className={inp} />
+            </F>
+            <F label="Meeting link" error={errors.meetingLink}
+              hint="Zoom, Teams, or other video URL. Can leave blank and update later.">
+              <input value={meetingLink} onChange={(e) => setMeetingLink(e.target.value)}
+                placeholder="https://zoom.us/j/..." className={inp} />
+            </F>
+            <F label="Meeting password">
+              <input value={meetingPassword} onChange={(e) => setMeetingPassword(e.target.value)}
+                placeholder="Optional password or PIN" className={inp} />
+            </F>
+            <F label="Platform notes">
+              <input value={platformNotes} onChange={(e) => setPlatformNotes(e.target.value)}
+                placeholder="e.g. Use Teams desktop app, not browser" className={inp} />
+            </F>
+          </div>
+        </FieldGroup>
+      )}
+
+      {/* ── Section 5: Requirements ────────────────────────────────────────── */}
+      <FieldGroup title="Interpreter requirements">
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-5">
+          All fields are optional. Interpreters who don't meet requirements will see what's blocking them and won't be able to self-pick.
+        </p>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <F label="Required language pair"
+            hint="Leave blank to allow any language. If set, interpreter must have an exact match.">
+            <input value={reqLanguage} onChange={(e) => setReqLanguage(e.target.value)}
+              placeholder="e.g. ASL-English" className={inp} />
+          </F>
+          <F label="Minimum experience (years)">
+            <input type="number" min="0" max="60" value={reqExpYears}
+              onChange={(e) => setReqExpYears(e.target.value)}
+              placeholder="e.g. 3" className={inp} />
+          </F>
+          <div className="sm:col-span-2">
+            <F label="Required certifications"
+              hint="Interpreter must hold at least one. Add each cert separately.">
+              <TagInput tags={reqCerts} onChange={setReqCerts} placeholder="e.g. NIC, CDI, RID" />
+            </F>
+          </div>
+          <div className="sm:col-span-2">
+            <F label="Required modalities"
+              hint="Interpreter must have at least one selected. Leave empty to allow all.">
+              <div className="grid gap-2 sm:grid-cols-4">
+                {["IN_PERSON","REMOTE","VIDEO_RELAY","VIDEO_REMOTE"].map((m) => {
+                  const label = { IN_PERSON:"In-person", REMOTE:"Remote", VIDEO_RELAY:"VRS", VIDEO_REMOTE:"VRI" }[m] ?? m;
+                  const active = reqModes.includes(m);
+                  return (
+                    <button key={m} type="button"
+                      onClick={() => setReqModes((prev) => active ? prev.filter((x) => x !== m) : [...prev, m])}
+                      className={[
+                        "flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-colors",
+                        active
+                          ? "border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900"
+                          : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300",
+                      ].join(" ")}>
+                      <span className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${active ? "border-white dark:border-zinc-900" : "border-zinc-300 dark:border-zinc-600"}`}>
+                        {active && <span className="block h-1.5 w-1.5 rounded-full bg-white dark:bg-zinc-900" />}
+                      </span>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </F>
           </div>
         </div>
-      </div>
+      </FieldGroup>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 p-5">
-        <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-3">Special notes (optional)</div>
-        <textarea
-          value={specialNotes}
-          onChange={(e) => setSpecialNotes(e.target.value)}
-          rows={4}
-          placeholder="Access instructions, dress code, context, etc. Visible to assigned interpreters."
-          className="w-full resize-none rounded-xl border border-zinc-200 bg-white p-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
-        />
-      </div>
-    </div>
-  );
-}
+      {/* ── Section 6: Compensation ────────────────────────────────────────── */}
+      <FieldGroup title="Compensation">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <F label="Rate" hint="Leave blank if undisclosed">
+            <div className="flex">
+              <span className="inline-flex items-center rounded-l-xl border border-r-0 border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800">$</span>
+              <input type="number" min="0" step="0.01" value={compRate} onChange={(e) => setCompRate(e.target.value)}
+                placeholder="45.00" className={inp + " rounded-l-none"} />
+            </div>
+          </F>
+          <F label="Unit">
+            <select value={compUnit} onChange={(e) => setCompUnit(e.target.value)} className={inp}>
+              {COMPENSATION_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </F>
+          <div className="sm:col-span-2">
+            <F label="Compensation notes" hint="e.g. Includes 30-min prep, mileage reimbursed">
+              <input value={compNotes} onChange={(e) => setCompNotes(e.target.value)}
+                placeholder="Additional compensation details" className={inp} />
+            </F>
+          </div>
+        </div>
+        <div className="mt-4">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={compVisible} onChange={(e) => setCompVisible(e.target.checked)}
+              className="h-4 w-4 rounded border-zinc-300" />
+            <span className="text-sm text-zinc-700 dark:text-zinc-300">
+              Show compensation to interpreters in their job feed
+            </span>
+          </label>
+        </div>
+      </FieldGroup>
 
-function F({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  type?: string;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">{label}</label>
-      <input
-        type={type ?? "text"}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
-      />
+      {/* ── Section 7: Notes ──────────────────────────────────────────────── */}
+      <FieldGroup title="Notes">
+        <div className="grid gap-4">
+          <F label="Special notes" hint="Visible to assigned interpreters — access codes, context, etc.">
+            <textarea value={specialNotes} onChange={(e) => setSpecialNotes(e.target.value)}
+              rows={3} placeholder="Anything the interpreter needs to know on the day…"
+              className={inp + " resize-none"} />
+          </F>
+          <F label="Internal notes" hint="Admin-only — never shown to interpreters">
+            <textarea value={internalNotes} onChange={(e) => setInternalNotes(e.target.value)}
+              rows={2} placeholder="Internal context, billing info, etc."
+              className={inp + " resize-none"} />
+          </F>
+        </div>
+      </FieldGroup>
+
     </div>
   );
 }

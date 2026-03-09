@@ -10,6 +10,7 @@ import {
   applyTemplateAction,
   saveTemplateAction,
   deleteTemplateAction,
+  getSlotsForDateAction,
 } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -207,7 +208,7 @@ function DayPanel({
   slots: Slot[];
   timezone: string;
   onAddSlot: (startMin: number, endMin: number) => void;
-  onDeleteSlot: (id: string) => void;
+  onDeleteSlot: (id: string, dateStr: string) => void;
   onClearDay: () => void;
   isPending: boolean;
 }) {
@@ -266,7 +267,7 @@ function DayPanel({
                 <button
                   type="button"
                   disabled={isPending}
-                  onClick={() => onDeleteSlot(s.id)}
+                  onClick={() => onDeleteSlot(s.id, dateStr)}
                   className="text-xs text-zinc-400 hover:text-rose-500 transition-colors"
                 >
                   Remove
@@ -315,33 +316,74 @@ function TemplateEditor({
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [days, setDays] = useState<Template["days"]>(initial?.days ?? []);
-  const [selectedDay, setSelectedDay] = useState(1); // Mon default
+  const [selectedDay, setSelectedDay] = useState(1);
   const [startHHMM, setStartHHMM] = useState("09:00");
   const [endHHMM, setEndHHMM] = useState("17:00");
   const [isPending, startTransition] = useTransition();
+
+  function overlaps(a: { startMin: number; endMin: number }, b: { startMin: number; endMin: number }) {
+    return a.startMin < b.endMin && b.startMin < a.endMin;
+  }
 
   function addDay() {
     try {
       const s = HHMMtoMin(startHHMM);
       const e = HHMMtoMin(endHHMM);
-      if (e <= s) { toast.error("End must be after start"); return; }
-      setDays((prev) => [...prev, { weekday: selectedDay, startMin: s, endMin: e }]);
+
+      if (e <= s) {
+        toast.error("End must be after start");
+        return;
+      }
+
+      const newWindow = { weekday: selectedDay, startMin: s, endMin: e };
+
+      const exactExists = days.some(
+        (d) =>
+          d.weekday === newWindow.weekday &&
+          d.startMin === newWindow.startMin &&
+          d.endMin === newWindow.endMin
+      );
+      if (exactExists) {
+        toast.error("That window already exists in this template");
+        return;
+      }
+
+      const overlapExists = days.some(
+        (d) => d.weekday === newWindow.weekday && overlaps(d, newWindow)
+      );
+      if (overlapExists) {
+        toast.error("This window overlaps an existing window for that day");
+        return;
+      }
+
+      setDays((prev) => [...prev, newWindow]);
     } catch {
       toast.error("Invalid time");
     }
   }
 
-  function removeDay(idx: number) {
+  function removeDayByOriginalIndex(idx: number) {
     setDays((prev) => prev.filter((_, i) => i !== idx));
   }
 
   async function handleSave() {
-    if (!name.trim()) { toast.error("Name is required"); return; }
-    if (days.length === 0) { toast.error("Add at least one time window"); return; }
+    if (!name.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+    if (days.length === 0) {
+      toast.error("Add at least one time window");
+      return;
+    }
+
     startTransition(async () => {
       await onSave({ id: initial?.id, name, timezone, days });
     });
   }
+
+  const sortedDays = days
+    .map((d, originalIndex) => ({ ...d, originalIndex }))
+    .sort((a, b) => a.weekday - b.weekday || a.startMin - b.startMin);
 
   return (
     <div className="space-y-4">
@@ -357,7 +399,6 @@ function TemplateEditor({
         />
       </div>
 
-      {/* Day selector */}
       <div>
         <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
           Add window
@@ -386,37 +427,33 @@ function TemplateEditor({
           <div className="flex-1">
             <TimeInput label="To" value={endHHMM} onChange={setEndHHMM} />
           </div>
-          <Button
-            variant="secondary"
-            className="h-10 rounded-xl"
-            onClick={addDay}
-          >
+          <Button variant="secondary" className="h-10 rounded-xl" onClick={addDay}>
             Add
           </Button>
         </div>
       </div>
 
-      {/* Days list */}
       <div className="space-y-1.5 max-h-48 overflow-auto">
-        {days.length === 0 ? (
+        {sortedDays.length === 0 ? (
           <div className="text-sm text-zinc-400 py-2">No windows yet.</div>
         ) : (
-          days
-            .slice()
-            .sort((a, b) => a.weekday - b.weekday || a.startMin - b.startMin)
-            .map((d, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900"
+          sortedDays.map((d) => (
+            <div
+              key={`${d.originalIndex}-${d.weekday}-${d.startMin}-${d.endMin}`}
+              className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900"
+            >
+              <span className="text-sm font-medium text-zinc-950 dark:text-white">
+                {WEEKDAYS_LONG[d.weekday]} · {minToHHMM(d.startMin)}–{minToHHMM(d.endMin)}
+              </span>
+              <button
+                type="button"
+                onClick={() => removeDayByOriginalIndex(d.originalIndex)}
+                className="text-xs text-zinc-400 hover:text-rose-500"
               >
-                <span className="text-sm font-medium text-zinc-950 dark:text-white">
-                  {WEEKDAYS_LONG[d.weekday]} · {minToHHMM(d.startMin)}–{minToHHMM(d.endMin)}
-                </span>
-                <button type="button" onClick={() => removeDay(i)} className="text-xs text-zinc-400 hover:text-rose-500">
-                  ×
-                </button>
-              </div>
-            ))
+                ×
+              </button>
+            </div>
+          ))
         )}
       </div>
 
@@ -580,15 +617,30 @@ export function AvailabilityManager({
     (startMin: number, endMin: number) => {
       if (!selectedDate) return;
       const dateStr = formatYMD(selectedDate);
+      const existing = slotsByDate[dateStr] ?? [];
+
+      const exactExists = existing.some(
+        (s) => s.startMin === startMin && s.endMin === endMin
+      );
+      if (exactExists) {
+        toast.error("That slot already exists");
+        return;
+      }
+
+      const overlapExists = existing.some(
+        (s) => startMin < s.endMin && s.startMin < endMin
+      );
+      if (overlapExists) {
+        toast.error("This window overlaps an existing slot");
+        return;
+      }
+
       startTransition(async () => {
         try {
-          await upsertSlotAction({ date: dateStr, startMin, endMin, timezone });
-          const tempId = `${dateStr}-${startMin}-${endMin}`;
+          const res = await upsertSlotAction({ date: dateStr, startMin, endMin, timezone });
           setSlots((prev) => [
-            ...prev.filter(
-              (s) => !(s.date === dateStr && s.startMin === startMin && s.endMin === endMin)
-            ),
-            { id: tempId, date: dateStr, startMin, endMin, timezone, note: null, templateId: null },
+            ...prev.filter((s) => s.date !== dateStr),
+            ...res.slots,
           ]);
           toast.success("Slot added");
         } catch (e: any) {
@@ -596,14 +648,19 @@ export function AvailabilityManager({
         }
       });
     },
-    [selectedDate, timezone]
+    [selectedDate, timezone, slotsByDate]
   );
 
-  const handleDeleteSlot = useCallback((slotId: string) => {
+  const handleDeleteSlot = useCallback((slotId: string, dateStr: string) => {
     startTransition(async () => {
       try {
         await deleteSlotAction(slotId);
-        setSlots((prev) => prev.filter((s) => s.id !== slotId));
+        // Re-fetch this date from the DB so client state exactly matches reality
+        const fresh = await getSlotsForDateAction(dateStr);
+        setSlots((prev) => [
+          ...prev.filter((s) => s.date !== dateStr),
+          ...fresh,
+        ]);
         toast.success("Slot removed");
       } catch (e: any) {
         toast.error(e?.message ?? "Failed to remove slot");
@@ -758,10 +815,10 @@ export function AvailabilityManager({
                       isSel
                         ? "text-white dark:text-zinc-950"
                         : todayDay
-                        ? "text-sky-600 dark:text-sky-400 font-bold"
-                        : past
-                        ? "text-zinc-300 dark:text-zinc-600"
-                        : "text-zinc-700 dark:text-zinc-300",
+                          ? "text-sky-600 dark:text-sky-400 font-bold"
+                          : past
+                            ? "text-zinc-300 dark:text-zinc-600"
+                            : "text-zinc-700 dark:text-zinc-300",
                     ].join(" ")}
                   >
                     {day.getDate()}

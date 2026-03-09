@@ -7,10 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─────────────────────────────────────────────
-// ENUMS
-// ─────────────────────────────────────────────
-
 enum Role {
   ADMIN
   INTERPRETER
@@ -39,9 +35,12 @@ enum InterpreterLinkStatus {
   REMOVED
 }
 
-// ─────────────────────────────────────────────
-// USER & PROFILE
-// ─────────────────────────────────────────────
+enum DeliveryMode {
+  IN_PERSON
+  REMOTE
+  VIDEO_RELAY
+  VIDEO_REMOTE
+}
 
 model UserProfile {
   id          String         @id @default(cuid())
@@ -50,33 +49,26 @@ model UserProfile {
   role        Role           @default(INTERPRETER)
   status      ApprovalStatus @default(PENDING)
   isActive    Boolean        @default(true)
-
-  reviewedBy String?
-  reviewedAt DateTime?
-  reviewNote String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reviewNote  String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   interpreterProfile InterpreterProfile?
   auditEvents        AuditEvent[]
-
-  // Assignment relations
-  assignmentsCreated Assignment[]           @relation("CreatedBy")
+  assignmentsCreated Assignment[]            @relation("CreatedBy")
   assignmentLinks    AssignmentInterpreter[]
   visibilityGrants   AssignmentVisibility[]
-
-  // Availability
-  availabilitySlots AvailabilitySlot[]
+  availabilitySlots  AvailabilitySlot[]
 
   @@index([role, status])
   @@index([role, isActive])
 }
 
 model InterpreterProfile {
-  id            String @id @default(cuid())
-  userProfileId String @unique
-
+  id              String      @id @default(cuid())
+  userProfileId   String      @unique
   displayName     String?
   phone           String?
   location        String?
@@ -84,102 +76,109 @@ model InterpreterProfile {
   languages       String[]
   certifications  String[]
   experienceYears Int?
-  preferredModes  String[] // e.g. ["IN_PERSON", "REMOTE", "VIDEO_RELAY"]
-  timezone        String   @default("America/New_York")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  preferredModes  String[]
+  timezone        String      @default("America/New_York")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  userProfile     UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 }
 
-// ─────────────────────────────────────────────
-// AVAILABILITY  — flat slot model
-//
-// Each row = one concrete time block on a specific date.
-// Interpreters set availability day-by-day (or via recurring
-// weekly template that the client expands into slots).
-// This avoids the confusing range+window abstraction entirely.
-// ─────────────────────────────────────────────
-
 model AvailabilitySlot {
-  id            String @id @default(cuid())
+  id            String                @id @default(cuid())
   userProfileId String
-
-  // The concrete date this slot applies to (stored as midnight UTC of that date)
-  date     DateTime
-  // Minutes from midnight in the interpreter's own timezone
-  startMin Int
-  endMin   Int
-
-  // Which timezone the interpreter used when they set this
-  timezone String @default("America/New_York")
-
-  // Optional: link to a recurring template (for display grouping only)
-  templateId String?
-
-  note String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  userProfile UserProfile          @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-  template    AvailabilityTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  date          DateTime
+  startMin      Int
+  endMin        Int
+  timezone      String                @default("America/New_York")
+  templateId    String?
+  note          String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  userProfile   UserProfile           @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  template      AvailabilityTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
   @@unique([userProfileId, date, startMin, endMin])
   @@index([userProfileId, date])
   @@index([date])
 }
 
-// A recurring weekly template an interpreter can save and apply to a date range.
-// The client expands templateDays into concrete AvailabilitySlots.
 model AvailabilityTemplate {
-  id            String @id @default(cuid())
+  id            String             @id @default(cuid())
   userProfileId String
-
-  name     String
-  timezone String @default("America/New_York")
-
-  // JSON: { weekday: 0-6, startMin: number, endMin: number }[]
-  days Json
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  slots AvailabilitySlot[]
+  name          String
+  timezone      String             @default("America/New_York")
+  days          Json
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  slots         AvailabilitySlot[]
 
   @@index([userProfileId])
 }
 
-// ─────────────────────────────────────────────
-// ASSIGNMENTS
-// ─────────────────────────────────────────────
-
 model Assignment {
-  id                     String         @id @default(cuid())
+  id                     String @id @default(cuid())
   createdByUserProfileId String
-  title                  String         // short human label e.g. "St. Mary - ASL Medical"
-  clientName             String
-  languagePair           String
-  assignmentType         String
-  location               String
-  scheduledStart         DateTime
-  scheduledEnd           DateTime       // REQUIRED — no ambiguous open-ended jobs
-  interpretersNeeded     Int            @default(1)
-  specialNotes           String?
-  status                 AssignmentStatus @default(OPEN)
-  visibilityMode         VisibilityMode   @default(ALL)
+
+  // Core identity
+  title              String
+  clientName         String
+  clientOrganization String?
+  languagePair       String
+  assignmentType     String
+  deliveryMode       DeliveryMode @default(IN_PERSON)
+
+  // Scheduling
+  scheduledStart DateTime
+  scheduledEnd   DateTime
+  timezone       String   @default("America/New_York")
+
+  // In-person logistics
+  location           String
+  address            String?
+  roomFloor          String?
+  parkingNotes       String?
+  accessInstructions String?
+  dresscode          String?
+
+  // Remote logistics
+  meetingLink     String?
+  meetingPassword String?
+  platformNotes   String?
+
+  // Staffing & status
+  interpretersNeeded Int              @default(1)
+  status             AssignmentStatus @default(OPEN)
+  visibilityMode     VisibilityMode   @default(ALL)
+  isUrgent           Boolean          @default(false)
+
+  // Interpreter requirements
+  requiredLanguagePair    String?
+  requiredCertifications  String[]
+  requiredExperienceYears Int?
+  requiredModes           String[]
+
+  // Compensation
+  compensationRate      Float?
+  compensationUnit      String?
+  compensationNotes     String?
+  isCompensationVisible Boolean @default(true)
+
+  // Notes
+  specialNotes  String?
+  internalNotes String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  createdBy    UserProfile            @relation("CreatedBy", fields: [createdByUserProfileId], references: [id], onDelete: Restrict)
+  createdBy    UserProfile             @relation("CreatedBy", fields: [createdByUserProfileId], references: [id], onDelete: Restrict)
   interpreters AssignmentInterpreter[]
   visibility   AssignmentVisibility[]
-  auditEvents  AuditEvent[]           @relation("AssignmentAudit")
+  auditEvents  AuditEvent[]            @relation("AssignmentAudit")
 
   @@index([status, scheduledStart])
   @@index([createdByUserProfileId])
+  @@index([deliveryMode, status])
+  @@index([isUrgent])
 }
 
 model AssignmentInterpreter {
@@ -190,9 +189,8 @@ model AssignmentInterpreter {
   assignedAt    DateTime              @default(now())
   removedAt     DateTime?
   note          String?
-
-  assignment  Assignment  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  assignment    Assignment            @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  userProfile   UserProfile           @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   @@unique([assignmentId, userProfileId])
   @@index([userProfileId])
@@ -200,39 +198,29 @@ model AssignmentInterpreter {
 }
 
 model AssignmentVisibility {
-  id            String   @id @default(cuid())
+  id            String      @id @default(cuid())
   assignmentId  String
   userProfileId String
-  createdAt     DateTime @default(now())
-
-  assignment  Assignment  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  assignment    Assignment  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   @@unique([assignmentId, userProfileId])
   @@index([assignmentId])
   @@index([userProfileId])
 }
 
-// ─────────────────────────────────────────────
-// UNIFIED AUDIT LOG
-// Covers both interpreter events and assignment events
-// ─────────────────────────────────────────────
-
 model AuditEvent {
-  id String @id @default(cuid())
-
-  // One of these will be set
+  id            String       @id @default(cuid())
   userProfileId String?
   assignmentId  String?
-
-  action    String
-  actor     String?
-  note      String?
-  meta      Json?
-  createdAt DateTime @default(now())
-
-  userProfile UserProfile? @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
-  assignment  Assignment?  @relation("AssignmentAudit", fields: [assignmentId], references: [id], onDelete: Cascade)
+  action        String
+  actor         String?
+  note          String?
+  meta          Json?
+  createdAt     DateTime     @default(now())
+  userProfile   UserProfile? @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  assignment    Assignment?  @relation("AssignmentAudit", fields: [assignmentId], references: [id], onDelete: Cascade)
 
   @@index([userProfileId, createdAt])
   @@index([assignmentId, createdAt])

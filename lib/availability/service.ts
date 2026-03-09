@@ -1,58 +1,51 @@
 // lib/availability/service.ts
-// Pure business logic for availability — no HTTP, no auth checks (caller handles those)
-
 import { prisma } from "@/lib/prisma";
 
 export type TemplateDay = {
-  weekday: number; // 0=Sun…6=Sat
+  weekday: number;
   startMin: number;
   endMin: number;
 };
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
-/** Advance a date by N calendar days (no time component change). */
 function addDays(date: Date, n: number): Date {
   const d = new Date(date);
   d.setUTCDate(d.getUTCDate() + n);
   return d;
 }
 
-/** Parse a YYYY-MM-DD string into midnight UTC. */
 export function parseLocalDate(s: string): Date {
   const d = new Date(`${s}T00:00:00.000Z`);
   if (isNaN(d.getTime())) throw new Error(`Invalid date: ${s}`);
   return d;
 }
 
-/** Format a Date as YYYY-MM-DD for display. */
 export function formatLocalDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** 0-based minutes → "HH:MM" */
 export function minToHHMM(min: number): string {
-  const h = Math.floor(min / 60)
-    .toString()
-    .padStart(2, "0");
+  const h = Math.floor(min / 60).toString().padStart(2, "0");
   const m = (min % 60).toString().padStart(2, "0");
   return `${h}:${m}`;
 }
 
-/** "HH:MM" → 0-based minutes, throws on bad input */
 export function HHMMtoMin(s: string): number {
   const [h, m] = s.split(":").map(Number);
   if (!Number.isFinite(h) || !Number.isFinite(m)) throw new Error(`Invalid time: ${s}`);
   return h * 60 + m;
 }
 
-// ─── slot operations ─────────────────────────────────────────────────────────
+function rangesOverlap(
+  a: { startMin: number; endMin: number },
+  b: { startMin: number; endMin: number }
+) {
+  return a.startMin < b.endMin && b.startMin < a.endMin;
+}
 
-/** Upsert a single availability slot for an interpreter. */
 export async function upsertSlot(
   userProfileId: string,
   input: {
-    date: string; // YYYY-MM-DD
+    date: string;
     startMin: number;
     endMin: number;
     timezone: string;
@@ -62,22 +55,50 @@ export async function upsertSlot(
 ) {
   const date = parseLocalDate(input.date);
 
-  if (input.endMin <= input.startMin)
+  if (input.endMin <= input.startMin) {
     throw new Error("End time must be after start time");
-  if (input.startMin < 0 || input.endMin > 1440)
+  }
+  if (input.startMin < 0 || input.endMin > 1440) {
     throw new Error("Times must be within a single day");
+  }
 
-  return prisma.availabilitySlot.upsert({
+  const exact = await prisma.availabilitySlot.findFirst({
     where: {
-      userProfileId_date_startMin_endMin: {
-        userProfileId,
-        date,
-        startMin: input.startMin,
-        endMin: input.endMin,
-      },
+      userProfileId,
+      date,
+      startMin: input.startMin,
+      endMin: input.endMin,
     },
-    update: { timezone: input.timezone, note: input.note ?? null, templateId: input.templateId ?? null },
-    create: {
+  });
+
+  if (exact) {
+    return prisma.availabilitySlot.update({
+      where: { id: exact.id },
+      data: {
+        timezone: input.timezone,
+        note: input.note ?? null,
+        templateId: input.templateId ?? null,
+      },
+    });
+  }
+
+  const overlapping = await prisma.availabilitySlot.findFirst({
+    where: {
+      userProfileId,
+      date,
+      startMin: { lt: input.endMin },
+      endMin: { gt: input.startMin },
+    },
+  });
+
+  if (overlapping) {
+    throw new Error(
+      `This window overlaps an existing slot (${minToHHMM(overlapping.startMin)}–${minToHHMM(overlapping.endMin)})`
+    );
+  }
+
+  return prisma.availabilitySlot.create({
+    data: {
       userProfileId,
       date,
       startMin: input.startMin,
@@ -89,7 +110,6 @@ export async function upsertSlot(
   });
 }
 
-/** Delete a single slot by id, scoped to the user. */
 export async function deleteSlot(userProfileId: string, slotId: string) {
   const existing = await prisma.availabilitySlot.findFirst({
     where: { id: slotId, userProfileId },
@@ -98,13 +118,6 @@ export async function deleteSlot(userProfileId: string, slotId: string) {
   await prisma.availabilitySlot.delete({ where: { id: slotId } });
 }
 
-/**
- * Expand a weekly template into concrete AvailabilitySlots
- * for every day in [startDate, endDate] inclusive.
- *
- * Existing slots for covered days are NOT deleted (additive).
- * Duplicate slots are upserted (skipped).
- */
 export async function applyTemplate(
   userProfileId: string,
   templateId: string,
@@ -120,6 +133,7 @@ export async function applyTemplate(
   const days = template.days as TemplateDay[];
   const start = parseLocalDate(startDate);
   const end = parseLocalDate(endDate);
+
   if (end < start) throw new Error("End date must be ≥ start date");
 
   const dayMs = 24 * 60 * 60 * 1000;
@@ -134,6 +148,7 @@ export async function applyTemplate(
     timezone: string;
     templateId: string;
   };
+
   const toCreate: SlotCreateInput[] = [];
   const slotSet = new Set<string>();
 
@@ -163,15 +178,39 @@ export async function applyTemplate(
 
   if (toCreate.length === 0) return { created: 0 };
 
+  const existing = await prisma.availabilitySlot.findMany({
+    where: {
+      userProfileId,
+      date: { gte: start, lte: end },
+    },
+    select: { date: true, startMin: true, endMin: true },
+  });
+
+  const filtered = toCreate.filter((candidate) => {
+    return !existing.some((slot) => {
+      const sameDate = formatLocalDate(slot.date) === formatLocalDate(candidate.date);
+      if (!sameDate) return false;
+
+      const exact = slot.startMin === candidate.startMin && slot.endMin === candidate.endMin;
+      if (exact) return true;
+
+      return rangesOverlap(
+        { startMin: slot.startMin, endMin: slot.endMin },
+        { startMin: candidate.startMin, endMin: candidate.endMin }
+      );
+    });
+  });
+
+  if (filtered.length === 0) return { created: 0 };
+
   const result = await prisma.availabilitySlot.createMany({
-    data: toCreate,
+    data: filtered,
     skipDuplicates: true,
   });
 
   return { created: result.count };
 }
 
-/** Delete ALL slots for a user on a specific date. */
 export async function clearDay(userProfileId: string, date: string) {
   const d = parseLocalDate(date);
   await prisma.availabilitySlot.deleteMany({
@@ -179,7 +218,6 @@ export async function clearDay(userProfileId: string, date: string) {
   });
 }
 
-/** Get slots for a user in a date range, grouped by date. */
 export async function getSlotsInRange(
   userProfileId: string,
   startDate: string,
@@ -205,8 +243,6 @@ export async function getSlotsInRange(
   return grouped;
 }
 
-// ─── template operations ─────────────────────────────────────────────────────
-
 export async function saveTemplate(
   userProfileId: string,
   input: {
@@ -217,12 +253,31 @@ export async function saveTemplate(
   }
 ) {
   if (!input.name?.trim()) throw new Error("Template name is required");
-  if (!Array.isArray(input.days) || input.days.length === 0)
+  if (!Array.isArray(input.days) || input.days.length === 0) {
     throw new Error("At least one day window is required");
+  }
 
   for (const d of input.days) {
     if (d.weekday < 0 || d.weekday > 6) throw new Error("Invalid weekday");
     if (d.endMin <= d.startMin) throw new Error("End time must be after start time");
+  }
+
+  const byWeekday = new Map<number, TemplateDay[]>();
+  for (const d of input.days) {
+    const arr = byWeekday.get(d.weekday) ?? [];
+    arr.push(d);
+    byWeekday.set(d.weekday, arr);
+  }
+
+  for (const [, arr] of byWeekday) {
+    const sorted = arr.slice().sort((a, b) => a.startMin - b.startMin);
+    for (let i = 1; i < sorted.length; i++) {
+      if (rangesOverlap(sorted[i - 1], sorted[i])) {
+        throw new Error(
+          `Template contains overlapping windows (${minToHHMM(sorted[i - 1].startMin)}–${minToHHMM(sorted[i - 1].endMin)} and ${minToHHMM(sorted[i].startMin)}–${minToHHMM(sorted[i].endMin)})`
+        );
+      }
+    }
   }
 
   if (input.id) {
@@ -230,9 +285,14 @@ export async function saveTemplate(
       where: { id: input.id, userProfileId },
     });
     if (!existing) throw new Error("Template not found");
+
     return prisma.availabilityTemplate.update({
       where: { id: input.id },
-      data: { name: input.name.trim(), timezone: input.timezone, days: input.days },
+      data: {
+        name: input.name.trim(),
+        timezone: input.timezone,
+        days: input.days,
+      },
     });
   }
 

@@ -1,4 +1,3 @@
-// app/admin/assignments/[id]/actions.ts
 "use server";
 
 import { requireAdmin } from "@/lib/authz";
@@ -16,18 +15,35 @@ function invalidate(assignmentId: string) {
   revalidatePath(`/admin/assignments/${assignmentId}`);
 }
 
-export async function updateAssignmentAction(assignmentId: string, patch: unknown) {
-  const admin = await requireAdmin();
-  await updateAssignmentDetails(admin, assignmentId, patch);
-  invalidate(assignmentId);
-  return { ok: true as const };
+type ActionResult = { ok: true } | { ok: false; error: string };
+
+export async function updateAssignmentAction(
+  assignmentId: string,
+  patch: unknown
+): Promise<ActionResult> {
+  try {
+    const admin = await requireAdmin();
+    await updateAssignmentDetails(admin, assignmentId, patch);
+    invalidate(assignmentId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to update assignment" };
+  }
 }
 
-export async function setStatusAction(assignmentId: string, status: unknown, note?: unknown) {
-  const admin = await requireAdmin();
-  await setAssignmentStatus(admin, assignmentId, status, note);
-  invalidate(assignmentId);
-  return { ok: true as const };
+export async function setStatusAction(
+  assignmentId: string,
+  status: unknown,
+  note?: unknown
+): Promise<ActionResult> {
+  try {
+    const admin = await requireAdmin();
+    await setAssignmentStatus(admin, assignmentId, status, note);
+    invalidate(assignmentId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to update status" };
+  }
 }
 
 export async function setVisibilityAction(
@@ -35,31 +51,43 @@ export async function setVisibilityAction(
   mode: "ALL" | "RESTRICTED",
   allowedIds: string[],
   note?: unknown
-) {
-  const admin = await requireAdmin();
-  await setAssignmentVisibility(admin, assignmentId, mode, allowedIds, note);
-  invalidate(assignmentId);
-  return { ok: true as const };
+): Promise<ActionResult> {
+  try {
+    const admin = await requireAdmin();
+    await setAssignmentVisibility(admin, assignmentId, mode, allowedIds, note);
+    invalidate(assignmentId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to update visibility" };
+  }
 }
 
 export async function assignInterpreterAction(
   assignmentId: string,
   interpreterProfileId: string,
   note?: string
-) {
-  const admin = await requireAdmin();
-  await assignInterpreterToJob(admin, assignmentId, interpreterProfileId, note);
-  invalidate(assignmentId);
-  return { ok: true as const };
+): Promise<ActionResult> {
+  try {
+    const admin = await requireAdmin();
+    await assignInterpreterToJob(admin, assignmentId, interpreterProfileId, note);
+    invalidate(assignmentId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to assign interpreter" };
+  }
 }
 
 export async function removeInterpreterAction(
   assignmentId: string,
   interpreterProfileId: string,
   note?: string
-) {
-  const admin = await requireAdmin();
-  await removeInterpreterFromJob(admin, assignmentId, interpreterProfileId, note);
-  invalidate(assignmentId);
-  return { ok: true as const };
+): Promise<ActionResult> {
+  try {
+    const admin = await requireAdmin();
+    await removeInterpreterFromJob(admin, assignmentId, interpreterProfileId, note);
+    invalidate(assignmentId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to remove interpreter" };
+  }
 }
