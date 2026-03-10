@@ -8,7 +8,7 @@ function actor(a: AdminActor) { return a.email ?? a.clerkUserId; }
 // ─── validation helpers ────────────────────────────────────────────────────────
 
 function parseStatus(s: unknown): AssignmentStatus {
-  const valid: AssignmentStatus[] = ["OPEN","ASSIGNED","COMPLETED","CANCELLED"];
+  const valid: AssignmentStatus[] = ["OPEN", "ASSIGNED", "COMPLETED", "CANCELLED"];
   if (typeof s === "string" && valid.includes(s as AssignmentStatus)) return s as AssignmentStatus;
   throw new Error(`Invalid status: ${s}`);
 }
@@ -47,7 +47,7 @@ function optionalStringArray(v: unknown): string[] {
   return v.filter((x): x is string => typeof x === "string" && x.trim().length > 0).map((x) => x.trim());
 }
 function parseDeliveryMode(v: unknown): "IN_PERSON" | "REMOTE" | "VIDEO_RELAY" | "VIDEO_REMOTE" {
-  const valid = ["IN_PERSON","REMOTE","VIDEO_RELAY","VIDEO_REMOTE"];
+  const valid = ["IN_PERSON", "REMOTE", "VIDEO_RELAY", "VIDEO_REMOTE"];
   if (typeof v === "string" && valid.includes(v)) return v as any;
   return "IN_PERSON";
 }
@@ -89,57 +89,57 @@ async function syncAssignmentStatus(
 export async function createAssignment(admin: AdminActor, body: unknown) {
   const b = body as Record<string, unknown>;
 
-  const clientName      = requireString(b.clientName, "Client name", 200);
-  const languagePair    = requireString(b.languagePair, "Language pair", 200);
-  const assignmentType  = requireString(b.assignmentType, "Assignment type", 200);
-  const location        = requireString(b.location, "Location", 500);
-  const scheduledStart  = requireDate(b.scheduledStart, "Start time");
-  const scheduledEnd    = requireDate(b.scheduledEnd, "End time");
+  const clientName = requireString(b.clientName, "Client name", 200);
+  const languagePair = requireString(b.languagePair, "Language pair", 200);
+  const assignmentType = requireString(b.assignmentType, "Assignment type", 200);
+  const location = requireString(b.location, "Location", 500);
+  const scheduledStart = requireDate(b.scheduledStart, "Start time");
+  const scheduledEnd = requireDate(b.scheduledEnd, "End time");
   if (scheduledEnd <= scheduledStart) throw new Error("End time must be after start time");
 
   const title = optionalString(b.title) ?? `${clientName} – ${languagePair}`;
 
   const data: Prisma.AssignmentCreateInput = {
-    createdBy:         { connect: { id: admin.id } },
+    createdBy: { connect: { id: admin.id } },
     title,
     clientName,
     clientOrganization: optionalString(b.clientOrganization),
     languagePair,
     assignmentType,
-    deliveryMode:       parseDeliveryMode(b.deliveryMode),
+    deliveryMode: parseDeliveryMode(b.deliveryMode),
     scheduledStart,
     scheduledEnd,
-    timezone:           optionalString(b.timezone) ?? "America/New_York",
+    timezone: optionalString(b.timezone) ?? "America/New_York",
     interpretersNeeded: requireInt(b.interpretersNeeded ?? 1, "Interpreters needed"),
-    isUrgent:           b.isUrgent === true,
+    isUrgent: b.isUrgent === true,
 
     // In-person
     location,
-    address:            optionalString(b.address),
-    roomFloor:          optionalString(b.roomFloor),
-    parkingNotes:       optionalString(b.parkingNotes),
+    address: optionalString(b.address),
+    roomFloor: optionalString(b.roomFloor),
+    parkingNotes: optionalString(b.parkingNotes),
     accessInstructions: optionalString(b.accessInstructions),
-    dresscode:          optionalString(b.dresscode),
+    dresscode: optionalString(b.dresscode),
 
     // Remote
-    meetingLink:        optionalString(b.meetingLink),
-    meetingPassword:    optionalString(b.meetingPassword),
-    platformNotes:      optionalString(b.platformNotes),
+    meetingLink: optionalString(b.meetingLink),
+    meetingPassword: optionalString(b.meetingPassword),
+    platformNotes: optionalString(b.platformNotes),
 
     // Requirements
-    requiredLanguagePair:    optionalString(b.requiredLanguagePair),
-    requiredCertifications:  optionalStringArray(b.requiredCertifications),
+    requiredLanguagePair: optionalString(b.requiredLanguagePair),
+    requiredCertifications: optionalStringArray(b.requiredCertifications),
     requiredExperienceYears: optionalInt(b.requiredExperienceYears),
-    requiredModes:           optionalStringArray(b.requiredModes),
+    requiredModes: optionalStringArray(b.requiredModes),
 
     // Compensation
-    compensationRate:      optionalFloat(b.compensationRate),
-    compensationUnit:      optionalString(b.compensationUnit),
-    compensationNotes:     optionalString(b.compensationNotes),
+    compensationRate: optionalFloat(b.compensationRate),
+    compensationUnit: optionalString(b.compensationUnit),
+    compensationNotes: optionalString(b.compensationNotes),
     isCompensationVisible: b.isCompensationVisible !== false,
 
     // Notes
-    specialNotes:  optionalString(b.specialNotes),
+    specialNotes: optionalString(b.specialNotes),
     internalNotes: optionalString(b.internalNotes),
 
     status: "OPEN",
@@ -164,39 +164,39 @@ export async function updateAssignmentDetails(admin: AdminActor, assignmentId: s
   const b = body as Record<string, unknown>;
   const patch: Prisma.AssignmentUpdateInput = {};
 
-  if (b.title != null)           patch.title           = requireString(b.title, "Title", 200);
-  if (b.clientName != null)      patch.clientName      = requireString(b.clientName, "Client name", 200);
+  if (b.title != null) patch.title = requireString(b.title, "Title", 200);
+  if (b.clientName != null) patch.clientName = requireString(b.clientName, "Client name", 200);
   if ("clientOrganization" in b) patch.clientOrganization = optionalString(b.clientOrganization);
-  if (b.languagePair != null)    patch.languagePair    = requireString(b.languagePair, "Language pair", 200);
-  if (b.assignmentType != null)  patch.assignmentType  = requireString(b.assignmentType, "Assignment type", 200);
-  if (b.deliveryMode != null)    patch.deliveryMode    = parseDeliveryMode(b.deliveryMode);
-  if (b.scheduledStart != null)  patch.scheduledStart  = requireDate(b.scheduledStart, "Start time");
-  if (b.scheduledEnd != null)    patch.scheduledEnd    = requireDate(b.scheduledEnd, "End time");
+  if (b.languagePair != null) patch.languagePair = requireString(b.languagePair, "Language pair", 200);
+  if (b.assignmentType != null) patch.assignmentType = requireString(b.assignmentType, "Assignment type", 200);
+  if (b.deliveryMode != null) patch.deliveryMode = parseDeliveryMode(b.deliveryMode);
+  if (b.scheduledStart != null) patch.scheduledStart = requireDate(b.scheduledStart, "Start time");
+  if (b.scheduledEnd != null) patch.scheduledEnd = requireDate(b.scheduledEnd, "End time");
   if (b.interpretersNeeded != null) patch.interpretersNeeded = requireInt(b.interpretersNeeded, "Interpreters needed");
-  if ("isUrgent" in b)           patch.isUrgent        = b.isUrgent === true;
+  if ("isUrgent" in b) patch.isUrgent = b.isUrgent === true;
 
-  if (b.location != null)        patch.location        = requireString(b.location, "Location", 500);
-  if ("address" in b)            patch.address         = optionalString(b.address);
-  if ("roomFloor" in b)          patch.roomFloor       = optionalString(b.roomFloor);
-  if ("parkingNotes" in b)       patch.parkingNotes    = optionalString(b.parkingNotes);
+  if (b.location != null) patch.location = requireString(b.location, "Location", 500);
+  if ("address" in b) patch.address = optionalString(b.address);
+  if ("roomFloor" in b) patch.roomFloor = optionalString(b.roomFloor);
+  if ("parkingNotes" in b) patch.parkingNotes = optionalString(b.parkingNotes);
   if ("accessInstructions" in b) patch.accessInstructions = optionalString(b.accessInstructions);
-  if ("dresscode" in b)          patch.dresscode       = optionalString(b.dresscode);
+  if ("dresscode" in b) patch.dresscode = optionalString(b.dresscode);
 
-  if ("meetingLink" in b)        patch.meetingLink     = optionalString(b.meetingLink);
-  if ("meetingPassword" in b)    patch.meetingPassword = optionalString(b.meetingPassword);
-  if ("platformNotes" in b)      patch.platformNotes   = optionalString(b.platformNotes);
+  if ("meetingLink" in b) patch.meetingLink = optionalString(b.meetingLink);
+  if ("meetingPassword" in b) patch.meetingPassword = optionalString(b.meetingPassword);
+  if ("platformNotes" in b) patch.platformNotes = optionalString(b.platformNotes);
 
-  if ("requiredLanguagePair" in b)    patch.requiredLanguagePair    = optionalString(b.requiredLanguagePair);
-  if ("requiredCertifications" in b)  patch.requiredCertifications  = optionalStringArray(b.requiredCertifications);
+  if ("requiredLanguagePair" in b) patch.requiredLanguagePair = optionalString(b.requiredLanguagePair);
+  if ("requiredCertifications" in b) patch.requiredCertifications = optionalStringArray(b.requiredCertifications);
   if ("requiredExperienceYears" in b) patch.requiredExperienceYears = optionalInt(b.requiredExperienceYears);
-  if ("requiredModes" in b)           patch.requiredModes           = optionalStringArray(b.requiredModes);
+  if ("requiredModes" in b) patch.requiredModes = optionalStringArray(b.requiredModes);
 
-  if ("compensationRate" in b)      patch.compensationRate      = optionalFloat(b.compensationRate);
-  if ("compensationUnit" in b)      patch.compensationUnit      = optionalString(b.compensationUnit);
-  if ("compensationNotes" in b)     patch.compensationNotes     = optionalString(b.compensationNotes);
+  if ("compensationRate" in b) patch.compensationRate = optionalFloat(b.compensationRate);
+  if ("compensationUnit" in b) patch.compensationUnit = optionalString(b.compensationUnit);
+  if ("compensationNotes" in b) patch.compensationNotes = optionalString(b.compensationNotes);
   if ("isCompensationVisible" in b) patch.isCompensationVisible = b.isCompensationVisible !== false;
 
-  if ("specialNotes" in b)  patch.specialNotes  = optionalString(b.specialNotes);
+  if ("specialNotes" in b) patch.specialNotes = optionalString(b.specialNotes);
   if ("internalNotes" in b) patch.internalNotes = optionalString(b.internalNotes);
 
   if (patch.scheduledStart && patch.scheduledEnd) {
@@ -281,13 +281,12 @@ export async function assignInterpreterToJob(
     const existingLink = await tx.assignmentInterpreter.findUnique({
       where: { assignmentId_userProfileId: { assignmentId, userProfileId: interpreterProfileId } },
     });
-    if (!existingLink?.status === undefined && assignment.interpreters.length >= assignment.interpretersNeeded)
-      throw new Error(`Assignment fully staffed (${assignment.interpreters.length}/${assignment.interpretersNeeded})`);
 
     const alreadyAssigned = existingLink?.status === "ASSIGNED";
     if (!alreadyAssigned && assignment.interpreters.length >= assignment.interpretersNeeded)
-      throw new Error(`Assignment fully staffed (${assignment.interpreters.length}/${assignment.interpretersNeeded}). Remove an interpreter first.`);
-
+      throw new Error(
+        `Assignment fully staffed (${assignment.interpreters.length}/${assignment.interpretersNeeded}). Remove an interpreter first.`
+      );
     // Availability check
     const tz = interpreter.interpreterProfile?.timezone ?? "America/New_York";
     function toLocalParts(date: Date, timezone: string) {
@@ -300,16 +299,16 @@ export async function assignInterpreterToJob(
       return { dateStr: `${get("year")}-${get("month")}-${get("day")}`, min: (h === 24 ? 0 : h) * 60 + parseInt(get("minute"), 10) };
     }
     const localStart = toLocalParts(assignment.scheduledStart, tz);
-    const localEnd   = toLocalParts(assignment.scheduledEnd, tz);
-    const jobDate    = new Date(`${localStart.dateStr}T00:00:00.000Z`);
-    const dayAfter   = new Date(jobDate); dayAfter.setUTCDate(dayAfter.getUTCDate() + 1);
+    const localEnd = toLocalParts(assignment.scheduledEnd, tz);
+    const jobDate = new Date(`${localStart.dateStr}T00:00:00.000Z`);
+    const dayAfter = new Date(jobDate); dayAfter.setUTCDate(dayAfter.getUTCDate() + 1);
 
     const coveringSlot = await tx.availabilitySlot.findFirst({
       where: {
         userProfileId: interpreterProfileId,
         date: { gte: jobDate, lt: dayAfter },
         startMin: { lte: localStart.min },
-        endMin:   { gte: localEnd.min },
+        endMin: { gte: localEnd.min },
       },
     });
     if (!coveringSlot) {
@@ -323,7 +322,7 @@ export async function assignInterpreterToJob(
         id: { not: assignmentId },
         interpreters: { some: { userProfileId: interpreterProfileId, status: "ASSIGNED" } },
         scheduledStart: { lt: assignment.scheduledEnd },
-        scheduledEnd:   { gt: assignment.scheduledStart },
+        scheduledEnd: { gt: assignment.scheduledStart },
       },
       select: { title: true },
     });
@@ -368,7 +367,7 @@ export async function removeInterpreterFromJob(
 export async function listJobsForInterpreter(interpreterProfileId: string) {
   return prisma.assignment.findMany({
     where: {
-      status: { in: ["OPEN","ASSIGNED"] },
+      status: { in: ["OPEN", "ASSIGNED"] },
       OR: [
         { visibilityMode: "ALL" },
         { visibilityMode: "RESTRICTED", visibility: { some: { userProfileId: interpreterProfileId } } },
@@ -433,10 +432,10 @@ export async function requestAssignment(interpreterProfileId: string, assignment
       return { h: h === 24 ? 0 : h, m: parseInt(get("minute"), 10), dateStr: `${get("year")}-${get("month")}-${get("day")}` };
     }
     const localStart = toLocalHHMM(assignment.scheduledStart, tz);
-    const localEnd   = toLocalHHMM(assignment.scheduledEnd, tz);
+    const localEnd = toLocalHHMM(assignment.scheduledEnd, tz);
     const jobStartMin = localStart.h * 60 + localStart.m;
-    const jobEndMin   = localEnd.h   * 60 + localEnd.m;
-    const jobDate  = new Date(`${localStart.dateStr}T00:00:00.000Z`);
+    const jobEndMin = localEnd.h * 60 + localEnd.m;
+    const jobDate = new Date(`${localStart.dateStr}T00:00:00.000Z`);
     const dayAfter = new Date(jobDate); dayAfter.setUTCDate(dayAfter.getUTCDate() + 1);
 
     const coveringSlot = await tx.availabilitySlot.findFirst({

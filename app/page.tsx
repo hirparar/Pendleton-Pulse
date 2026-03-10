@@ -13,7 +13,7 @@ export default async function Home() {
   });
 
   if (profile?.role === "ADMIN") redirect("/admin");
-  if (profile?.role === "INTERPRETER") redirect("/interpreter");
+  if (profile?.role === "INTERPRETER") redirect("/interpreter/dashboard");
 
   redirect("/sign-in");
 }
