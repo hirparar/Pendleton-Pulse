@@ -23,6 +23,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { minToHHMM, HHMMtoMin } from "@/lib/availability/service";
+import { Loader2, Plus, X, Clock, Calendar } from "lucide-react";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -149,13 +150,13 @@ function SlotPill({
   disabled?: boolean;
 }) {
   return (
-    <div className="group flex items-center gap-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+    <div className="group flex items-center gap-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 text-xs font-medium text-emerald-800">
       <span>{minToHHMM(slot.startMin)}–{minToHHMM(slot.endMin)}</span>
       <button
         type="button"
         disabled={disabled}
         onClick={() => onDelete(slot.id)}
-        className="opacity-0 group-hover:opacity-100 text-emerald-600 hover:text-rose-500 transition-all ml-0.5 dark:text-emerald-400"
+        className="opacity-0 group-hover:opacity-100 text-emerald-600 hover:text-rose-500 transition-all ml-0.5"
         aria-label="Remove slot"
       >
         ×
@@ -177,7 +178,7 @@ function TimeInput({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+      <label className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
         {label}
       </label>
       <input
@@ -185,7 +186,7 @@ function TimeInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-950 outline-none focus:ring-2 focus:ring-zinc-950/20 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+        className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-950 outline-none focus:ring-2 focus:ring-zinc-950/20 disabled:opacity-50"
       />
     </div>
   );
@@ -231,10 +232,10 @@ function DayPanel({
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <div className="text-base font-semibold text-zinc-950 dark:text-white">
+          <div className="text-base font-semibold text-zinc-950">
             {WEEKDAYS_LONG[date.getDay()]}, {MONTHS[date.getMonth()]} {date.getDate()}
           </div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{timezone}</div>
+          <div className="text-xs text-zinc-500 mt-0.5">{timezone}</div>
         </div>
         {slots.length > 0 && !past && (
           <button
@@ -251,16 +252,16 @@ function DayPanel({
       {/* Existing slots */}
       <div className="flex-1 overflow-auto space-y-2 mb-4">
         {slots.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 px-4 py-6 text-center text-sm text-zinc-400">
+          <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-6 text-center text-sm text-zinc-400">
             {past ? "No availability was set." : "No availability set. Add a time window below."}
           </div>
         ) : (
           slots.map((s) => (
             <div
               key={s.id}
-              className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900"
+              className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3"
             >
-              <span className="text-sm font-medium text-zinc-950 dark:text-white">
+              <span className="text-sm font-medium text-zinc-950">
                 {minToHHMM(s.startMin)} – {minToHHMM(s.endMin)}
               </span>
               {!past && (
@@ -280,21 +281,23 @@ function DayPanel({
 
       {/* Add window */}
       {!past && (
-        <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4 space-y-3">
-          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+        <div className="border-t border-zinc-100 pt-4 space-y-3">
+          <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
             Add time window
           </div>
           <div className="grid grid-cols-2 gap-3">
             <TimeInput label="From" value={startHHMM} onChange={setStartHHMM} disabled={isPending} />
             <TimeInput label="To" value={endHHMM} onChange={setEndHHMM} disabled={isPending} />
           </div>
-          <Button
-            className="w-full h-10 rounded-xl bg-zinc-950 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950"
+          <button
+            type="button"
+            className="flex w-full h-10 items-center justify-center gap-2 rounded-xl bg-zinc-950 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-50"
             onClick={handleAdd}
             disabled={isPending}
           >
+            {isPending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
             {isPending ? "Saving…" : "Add window"}
-          </Button>
+          </button>
         </div>
       )}
     </div>
@@ -388,19 +391,19 @@ function TemplateEditor({
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+        <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
           Template name
         </label>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Standard Week, Hospital Hours"
-          className="mt-2 h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+          className="mt-2 h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950/20"
         />
       </div>
 
       <div>
-        <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+        <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
           Add window
         </label>
         <div className="mt-2 flex flex-wrap gap-1.5">
@@ -412,8 +415,8 @@ function TemplateEditor({
               className={[
                 "h-9 w-10 rounded-lg text-sm font-medium transition-colors",
                 selectedDay === i
-                  ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
-                  : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300",
+                  ? "bg-zinc-950 text-white"
+                  : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50",
               ].join(" ")}
             >
               {d}
@@ -440,9 +443,9 @@ function TemplateEditor({
           sortedDays.map((d) => (
             <div
               key={`${d.originalIndex}-${d.weekday}-${d.startMin}-${d.endMin}`}
-              className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900"
+              className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-2.5"
             >
-              <span className="text-sm font-medium text-zinc-950 dark:text-white">
+              <span className="text-sm font-medium text-zinc-950">
                 {WEEKDAYS_LONG[d.weekday]} · {minToHHMM(d.startMin)}–{minToHHMM(d.endMin)}
               </span>
               <button
@@ -457,12 +460,12 @@ function TemplateEditor({
         )}
       </div>
 
-      <div className="flex gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+      <div className="flex gap-2 pt-2 border-t border-zinc-100">
         <Button variant="secondary" className="flex-1 h-11 rounded-xl" onClick={onClose} disabled={isPending}>
           Cancel
         </Button>
         <Button
-          className="flex-1 h-11 rounded-xl bg-zinc-950 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950"
+          className="flex-1 h-11 rounded-xl bg-zinc-950 text-white hover:bg-zinc-800"
           onClick={handleSave}
           disabled={isPending}
         >
@@ -515,8 +518,8 @@ function ApplyTemplateDialog({
               className={[
                 "w-full rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors",
                 selectedId === t.id
-                  ? "border-zinc-950 bg-zinc-950 text-white dark:border-white dark:bg-white dark:text-zinc-950"
-                  : "border-zinc-200 bg-white text-zinc-950 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white",
+                  ? "border-zinc-950 bg-zinc-950 text-white"
+                  : "border-zinc-200 bg-white text-zinc-950 hover:bg-zinc-50",
               ].join(" ")}
             >
               {t.name}
@@ -535,7 +538,7 @@ function ApplyTemplateDialog({
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="mt-2 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+            className="mt-2 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950/20"
           />
         </div>
         <div>
@@ -544,21 +547,21 @@ function ApplyTemplateDialog({
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="mt-2 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+            className="mt-2 h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950/20"
           />
         </div>
       </div>
 
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+      <p className="text-xs text-zinc-500">
         Slots will be added to each matching weekday in the range. Existing slots are kept.
       </p>
 
-      <div className="flex gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+      <div className="flex gap-2 pt-2 border-t border-zinc-100">
         <Button variant="secondary" className="flex-1 h-11 rounded-xl" onClick={onClose} disabled={isPending}>
           Cancel
         </Button>
         <Button
-          className="flex-1 h-11 rounded-xl bg-zinc-950 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950"
+          className="flex-1 h-11 rounded-xl bg-zinc-950 text-white hover:bg-zinc-800"
           onClick={handleApply}
           disabled={isPending || !selectedId}
         >
@@ -746,18 +749,18 @@ export function AvailabilityManager({
       {/* ── Left: Calendar + Templates ──────────────────────────────────────── */}
       <div className="lg:col-span-7 space-y-4">
         {/* Calendar Card */}
-        <div className="rounded-3xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 overflow-hidden">
+        <div className="rounded-3xl border border-zinc-200 bg-white overflow-hidden">
           {/* Month nav */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
             <button
               type="button"
               onClick={prevMonth}
-              className="h-8 w-8 rounded-full flex items-center justify-center text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="h-8 w-8 rounded-full flex items-center justify-center text-zinc-500 hover:bg-zinc-100 transition-colors"
             >
               ‹
             </button>
             <div className="text-center">
-              <div className="text-base font-semibold text-zinc-950 dark:text-white">
+              <div className="text-base font-semibold text-zinc-950">
                 {MONTHS[calMonth]} {calYear}
               </div>
               <div className="text-xs text-zinc-400 mt-0.5">
@@ -767,14 +770,14 @@ export function AvailabilityManager({
             <button
               type="button"
               onClick={nextMonth}
-              className="h-8 w-8 rounded-full flex items-center justify-center text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="h-8 w-8 rounded-full flex items-center justify-center text-zinc-500 hover:bg-zinc-100 transition-colors"
             >
               ›
             </button>
           </div>
 
           {/* Weekday labels */}
-          <div className="grid grid-cols-7 border-b border-zinc-100 dark:border-zinc-800">
+          <div className="grid grid-cols-7 border-b border-zinc-100">
             {WEEKDAYS_SHORT.map((d) => (
               <div
                 key={d}
@@ -801,24 +804,24 @@ export function AvailabilityManager({
                   type="button"
                   onClick={() => setSelectedDate(day)}
                   className={[
-                    "relative flex flex-col items-start p-2 min-h-[72px] border-b border-r border-zinc-100 dark:border-zinc-800 transition-colors text-left",
+                    "relative flex flex-col items-start p-2 min-h-[72px] border-b border-r border-zinc-100 transition-colors text-left",
                     !isCurrentMonth ? "opacity-30" : "",
-                    past && isCurrentMonth ? "bg-zinc-50/50 dark:bg-zinc-900/50" : "",
+                    past && isCurrentMonth ? "bg-zinc-50/50" : "",
                     isSel
-                      ? "bg-zinc-950 dark:bg-white"
-                      : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50",
+                      ? "bg-zinc-950"
+                      : "hover:bg-zinc-50",
                   ].join(" ")}
                 >
                   <span
                     className={[
                       "text-xs font-medium mb-1",
                       isSel
-                        ? "text-white dark:text-zinc-950"
+                        ? "text-white"
                         : todayDay
-                          ? "text-sky-600 dark:text-sky-400 font-bold"
+                          ? "text-sky-600 font-bold"
                           : past
-                            ? "text-zinc-300 dark:text-zinc-600"
-                            : "text-zinc-700 dark:text-zinc-300",
+                            ? "text-zinc-300"
+                            : "text-zinc-700",
                     ].join(" ")}
                   >
                     {day.getDate()}
@@ -850,11 +853,11 @@ export function AvailabilityManager({
         </div>
 
         {/* Templates Card */}
-        <div className="rounded-3xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 p-5">
+        <div className="rounded-3xl border border-zinc-200 bg-white p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Weekly templates</div>
-              <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+              <div className="text-sm font-semibold text-zinc-950">Weekly templates</div>
+              <div className="text-xs text-zinc-500 mt-0.5">
                 Save recurring patterns and apply to any date range
               </div>
             </div>
@@ -869,7 +872,7 @@ export function AvailabilityManager({
                 </Button>
               )}
               <Button
-                className="h-9 rounded-xl bg-zinc-950 text-white text-xs hover:bg-zinc-800 dark:bg-white dark:text-zinc-950"
+                className="h-9 rounded-xl bg-zinc-950 text-white text-xs hover:bg-zinc-800"
                 onClick={() => { setEditingTemplate(null); setTemplateEditorOpen(true); }}
               >
                 New template
@@ -878,7 +881,7 @@ export function AvailabilityManager({
           </div>
 
           {templates.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 px-4 py-6 text-center text-sm text-zinc-400">
+            <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-6 text-center text-sm text-zinc-400">
               No templates yet. Create one to quickly fill your schedule.
             </div>
           ) : (
@@ -886,10 +889,10 @@ export function AvailabilityManager({
               {templates.map((t) => (
                 <div
                   key={t.id}
-                  className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/50"
+                  className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3"
                 >
                   <div>
-                    <div className="text-sm font-medium text-zinc-950 dark:text-white">{t.name}</div>
+                    <div className="text-sm font-medium text-zinc-950">{t.name}</div>
                     <div className="text-xs text-zinc-400 mt-0.5">
                       {t.days
                         .slice()
@@ -903,7 +906,7 @@ export function AvailabilityManager({
                     <button
                       type="button"
                       onClick={() => { setEditingTemplate(t); setTemplateEditorOpen(true); }}
-                      className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+                      className="text-xs text-zinc-500 hover:text-zinc-800 transition-colors"
                     >
                       Edit
                     </button>
@@ -925,7 +928,7 @@ export function AvailabilityManager({
       {/* ── Right: Day panel + Upcoming ─────────────────────────────────────── */}
       <div className="lg:col-span-5 space-y-4">
         {/* Day panel */}
-        <div className="rounded-3xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 p-5 min-h-[340px] flex flex-col">
+        <div className="rounded-3xl border border-zinc-200 bg-white p-5 min-h-[340px] flex flex-col">
           {selectedDate ? (
             <DayPanel
               date={selectedDate}
@@ -945,14 +948,14 @@ export function AvailabilityManager({
         </div>
 
         {/* Upcoming commitments */}
-        <div className="rounded-3xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 p-5">
+        <div className="rounded-3xl border border-zinc-200 bg-white p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-sm font-semibold text-zinc-950 dark:text-white">Upcoming commitments</div>
+            <div className="text-sm font-semibold text-zinc-950">Upcoming commitments</div>
             <Badge variant="secondary" className="rounded-full">{upcomingJobs.length}</Badge>
           </div>
 
           {upcomingJobs.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 px-4 py-5 text-center text-sm text-zinc-400">
+            <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-center text-sm text-zinc-400">
               No assignments scheduled yet.
             </div>
           ) : (
@@ -960,13 +963,13 @@ export function AvailabilityManager({
               {upcomingJobs.map((j) => (
                 <div
                   key={j.id}
-                  className="rounded-xl border border-zinc-100 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50"
+                  className="rounded-xl border border-zinc-100 bg-zinc-50 p-3"
                 >
-                  <div className="font-medium text-sm text-zinc-950 dark:text-white">{j.title}</div>
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  <div className="font-medium text-sm text-zinc-950">{j.title}</div>
+                  <div className="text-xs text-zinc-500 mt-0.5">
                     {j.languagePair} · {j.assignmentType}
                   </div>
-                  <div className="text-xs text-zinc-600 dark:text-zinc-300 mt-1.5">
+                  <div className="text-xs text-zinc-600 mt-1.5">
                     {formatJobTime(j.scheduledStart)} → {formatJobTime(j.scheduledEnd)}
                   </div>
                 </div>

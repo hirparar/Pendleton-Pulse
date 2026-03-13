@@ -60,10 +60,10 @@ export default async function InterpreterAvailabilityPage() {
   return (
     <MotionIn className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">
           Availability
         </h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mt-1 text-sm text-zinc-500">
           Set your availability per day. Admins see this to assign jobs accurately.
         </p>
       </header>

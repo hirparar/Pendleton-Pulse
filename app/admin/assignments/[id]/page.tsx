@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/authz";
 import { MotionIn } from "@/components/motion";
 import { AssignmentCommandPanel } from "./ui";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 type PageProps = { params: Promise<{ id: string }> };
@@ -41,20 +42,15 @@ export default async function AssignmentDetailPage({ params }: PageProps) {
   return (
     <MotionIn className="pb-16">
       {/* ── Breadcrumb ── */}
-      <nav className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-        <Link href="/admin/assignments" className="hover:text-zinc-900 dark:hover:text-white transition-colors">
+      <nav className="mb-6 flex items-center gap-1.5 text-sm">
+        <Link href="/admin/assignments" className="flex items-center gap-1.5 text-zinc-500 transition-colors hover:text-zinc-900">
+          <ArrowLeft className="size-3.5" />
           Assignments
         </Link>
-        <span>/</span>
-        <span className="text-zinc-900 dark:text-white font-medium truncate max-w-sm">
+        <ChevronRight className="size-3.5 text-zinc-300" />
+        <span className="max-w-sm truncate font-medium text-zinc-950">
           {assignment.title}
         </span>
-        <Link
-          href="/admin/assignments"
-          className="ml-auto shrink-0 inline-flex h-8 items-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
-        >
-          ← Back
-        </Link>
       </nav>
 
       {/* ── Full-width command panel ── */}

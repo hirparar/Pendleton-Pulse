@@ -12,6 +12,7 @@ import {
   credentialsSchema,
   preferencesSchema,
 } from "@/lib/validation/interpreter-profile";
+import { Loader2, Pencil } from "lucide-react";
 
 // ─── types ─────────────────────────────────────────────────────────────────────
 
@@ -106,7 +107,7 @@ function avatarInitials(name: string, email: string | null) {
 function FieldError({ msg }: { msg: string | null | undefined }) {
   if (!msg) return null;
   return (
-    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
+    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-600">
       <svg className="h-3 w-3 flex-shrink-0" viewBox="0 0 12 12" fill="currentColor">
         <circle cx="6" cy="6" r="5.5" fill="currentColor" fillOpacity=".15" />
         <path d="M6 3.5v3M6 8.5v.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -124,9 +125,8 @@ const inp = (hasError?: boolean) =>
     "placeholder-zinc-400 outline-none transition-all",
     "focus:ring-4 focus:ring-offset-0",
     hasError
-      ? "border-red-300 focus:border-red-400 focus:ring-red-100 dark:border-red-700 dark:focus:ring-red-900/40"
-      : "border-zinc-200 focus:border-zinc-400 focus:ring-zinc-100 dark:border-zinc-700 dark:focus:border-zinc-500 dark:focus:ring-zinc-800",
-    "dark:bg-zinc-900 dark:text-white dark:placeholder-zinc-500",
+      ? "border-red-300 focus:border-red-400 focus:ring-red-100"
+      : "border-zinc-200 focus:border-zinc-400 focus:ring-zinc-100",
   ].join(" ");
 
 // ─── tag pill editor ──────────────────────────────────────────────────────────
@@ -157,12 +157,12 @@ function TagEditor({
     return tags.length > 0 ? (
       <div className="flex flex-wrap gap-1.5">
         {tags.map((t) => (
-          <span key={t} className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300">
+          <span key={t} className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-700">
             {t}
           </span>
         ))}
       </div>
-    ) : <span className="text-sm text-zinc-400 dark:text-zinc-500">None added</span>;
+    ) : <span className="text-sm text-zinc-400">None added</span>;
   }
 
   return (
@@ -170,7 +170,7 @@ function TagEditor({
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {tags.map((t) => (
-            <span key={t} className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300">
+            <span key={t} className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-700">
               {t}
               <button type="button" onClick={() => onChange(tags.filter((x) => x !== t))}
                 className="text-zinc-400 hover:text-red-500 transition-colors leading-none">
@@ -185,7 +185,7 @@ function TagEditor({
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
           className={inp(!!error)} />
         <button type="button" onClick={add}
-          className="shrink-0 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800">
+          className="shrink-0 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors">
           Add
         </button>
       </div>
@@ -198,10 +198,10 @@ function TagEditor({
 
 function ViewRow({ label, value, empty = "Not set" }: { label: string; value?: React.ReactNode; empty?: string }) {
   return (
-    <div className="py-3.5 flex items-start gap-4 border-b border-zinc-100 last:border-0 dark:border-zinc-800/70">
-      <span className="w-36 shrink-0 text-xs font-medium text-zinc-500 dark:text-zinc-400 pt-0.5">{label}</span>
-      <span className="flex-1 text-sm text-zinc-900 dark:text-zinc-100 leading-relaxed">
-        {value || <span className="text-zinc-400 dark:text-zinc-600 italic">{empty}</span>}
+    <div className="py-3.5 flex items-start gap-4 border-b border-zinc-100 last:border-0">
+      <span className="w-36 shrink-0 text-xs font-medium text-zinc-500 pt-0.5">{label}</span>
+      <span className="flex-1 text-sm text-zinc-900 leading-relaxed">
+        {value || <span className="text-zinc-400 italic">{empty}</span>}
       </span>
     </div>
   );
@@ -249,22 +249,20 @@ function SectionCard({
   const isEditing = state === "editing" || state === "saving";
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white">
       {/* card header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
         <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">{title}</h2>
+          <h2 className="text-sm font-semibold text-zinc-900">{title}</h2>
           {badge}
         </div>
         {canEdit && !isEditing && (
           <button
             type="button"
             onClick={() => setState("editing")}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 transition-colors dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700/60"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 transition-colors"
           >
-            <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
-              <path d="M11 2.5L13.5 5l-8.5 8.5H2.5V11L11 2.5z" />
-            </svg>
+            <Pencil className="size-3" />
             Edit
           </button>
         )}
@@ -277,12 +275,12 @@ function SectionCard({
 
       {/* edit footer */}
       {isEditing && (
-        <div className="flex items-center justify-end gap-3 border-t border-zinc-100 bg-zinc-50/80 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900/60">
+        <div className="flex items-center justify-end gap-3 border-t border-zinc-100 bg-zinc-50/80 px-6 py-4">
           <button
             type="button"
             onClick={handleCancel}
             disabled={state === "saving"}
-            className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+            className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
@@ -290,17 +288,10 @@ function SectionCard({
             type="button"
             onClick={handleSave}
             disabled={state === "saving"}
-            className="rounded-xl bg-zinc-900 px-5 py-2 text-sm font-semibold text-white hover:bg-zinc-700 transition-colors disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+            className="flex items-center gap-2 rounded-xl bg-zinc-950 px-5 py-2 text-sm font-semibold text-white hover:bg-zinc-800 transition-colors disabled:opacity-60"
           >
-            {state === "saving" ? (
-              <span className="flex items-center gap-2">
-                <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity=".25" strokeWidth="3" />
-                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-                Saving…
-              </span>
-            ) : "Save changes"}
+            {state === "saving" ? <Loader2 className="size-3.5 animate-spin" /> : null}
+            {state === "saving" ? "Saving…" : "Save changes"}
           </button>
         </div>
       )}
@@ -384,12 +375,12 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
     : "Denied";
 
   const statusColor = !isActive
-    ? "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+    ? "bg-zinc-100 text-zinc-500"
     : status === "APPROVED"
-    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:ring-emerald-800"
+    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
     : status === "PENDING"
-    ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:ring-amber-800"
-    : "bg-red-50 text-red-700 ring-1 ring-red-200 dark:bg-red-950/60 dark:text-red-300 dark:ring-red-800";
+    ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
+    : "bg-red-50 text-red-700 ring-1 ring-red-200";
 
   const initials = avatarInitials(basic.displayName, email);
 
@@ -461,30 +452,30 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
     <div className="space-y-5">
 
       {/* ── Hero identity card ─────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white">
         <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             {/* Avatar */}
             <div className="relative">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900 text-lg font-bold tracking-tight text-white dark:bg-zinc-100 dark:text-zinc-900">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900 text-lg font-bold tracking-tight text-white">
                 {initials}
               </div>
               {status === "APPROVED" && isActive && (
-                <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-white bg-emerald-500 dark:border-zinc-900" />
+                <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-white bg-emerald-500" />
               )}
             </div>
             {/* name + meta */}
             <div>
-              <h1 className="text-lg font-semibold text-zinc-950 dark:text-white leading-tight">
-                {basic.displayName || <span className="text-zinc-400 dark:text-zinc-500 font-normal">No display name</span>}
+              <h1 className="text-lg font-semibold text-zinc-950 leading-tight">
+                {basic.displayName || <span className="text-zinc-400 font-normal">No display name</span>}
               </h1>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{email ?? "—"}</p>
+              <p className="text-sm text-zinc-500 mt-0.5">{email ?? "—"}</p>
               <div className="flex items-center flex-wrap gap-2 mt-2">
                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColor}`}>
                   {statusLabel}
                 </span>
                 {basic.location && (
-                  <span className="flex items-center gap-1 text-xs text-zinc-400 dark:text-zinc-500">
+                  <span className="flex items-center gap-1 text-xs text-zinc-400">
                     <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <path d="M8 1.5C5.515 1.5 3.5 3.515 3.5 6c0 3.75 4.5 8.5 4.5 8.5S12.5 9.75 12.5 6c0-2.485-2.015-4.5-4.5-4.5z"/>
                       <circle cx="8" cy="6" r="1.5"/>
@@ -493,7 +484,7 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
                   </span>
                 )}
                 {basic.experienceYears > 0 && (
-                  <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                  <span className="text-xs text-zinc-400">
                     {basic.experienceYears} yr{basic.experienceYears !== 1 ? "s" : ""} exp.
                   </span>
                 )}
@@ -504,10 +495,10 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
           {/* Completeness + join date */}
           <div className="shrink-0 flex flex-col items-start sm:items-end gap-2">
             <div className="flex items-center gap-3">
-              <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Profile strength</div>
-              <div className="text-sm font-bold text-zinc-900 dark:text-white">{pct}%</div>
+              <div className="text-xs font-medium text-zinc-500">Profile strength</div>
+              <div className="text-sm font-bold text-zinc-900">{pct}%</div>
             </div>
-            <div className="w-40 h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+            <div className="w-40 h-1.5 rounded-full bg-zinc-100 overflow-hidden">
               <div
                 className={[
                   "h-full rounded-full transition-all duration-700",
@@ -517,7 +508,7 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
               />
             </div>
             {joinedAt && (
-              <div className="text-xs text-zinc-400 dark:text-zinc-500">
+              <div className="text-xs text-zinc-400">
                 Member since {new Date(joinedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
               </div>
             )}
@@ -541,7 +532,7 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
             <ViewRow
               label="Bio"
               value={basic.bio
-                ? <span className="whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">{basic.bio}</span>
+                ? <span className="whitespace-pre-wrap text-sm text-zinc-700 leading-relaxed">{basic.bio}</span>
                 : undefined}
             />
           </div>
@@ -550,7 +541,7 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
           <div className="py-4 grid gap-4 sm:grid-cols-2">
             {/* Display name */}
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+              <label className="mb-1.5 block text-xs font-semibold text-zinc-600 uppercase tracking-wide">
                 Display name <span className="text-red-400">*</span>
               </label>
               <input
@@ -564,7 +555,7 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
 
             {/* Phone */}
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+              <label className="mb-1.5 block text-xs font-semibold text-zinc-600 uppercase tracking-wide">
                 Phone <span className="text-red-400">*</span>
               </label>
               <input
@@ -579,7 +570,7 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
 
             {/* Location */}
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+              <label className="mb-1.5 block text-xs font-semibold text-zinc-600 uppercase tracking-wide">
                 Location <span className="text-red-400">*</span>
               </label>
               <input
@@ -593,7 +584,7 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
 
             {/* Experience */}
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+              <label className="mb-1.5 block text-xs font-semibold text-zinc-600 uppercase tracking-wide">
                 Years of experience
               </label>
               <input
@@ -611,7 +602,7 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
 
             {/* Timezone */}
             <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+              <label className="mb-1.5 block text-xs font-semibold text-zinc-600 uppercase tracking-wide">
                 Timezone
               </label>
               <select
@@ -628,7 +619,7 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
 
             {/* Bio */}
             <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+              <label className="mb-1.5 block text-xs font-semibold text-zinc-600 uppercase tracking-wide">
                 Bio <span className="text-red-400">*</span>
                 <span className="ml-2 font-normal normal-case text-zinc-400">(min 20 characters)</span>
               </label>
@@ -653,7 +644,7 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
         title="Languages & certifications"
         badge={
           (creds.languages.length > 0 || creds.certifications.length > 0) ? (
-            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">
               {creds.languages.length + creds.certifications.length} items
             </span>
           ) : undefined
@@ -667,7 +658,7 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
                 creds.languages.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5 pt-0.5">
                     {creds.languages.map((l) => (
-                      <span key={l} className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-0.5 text-xs font-medium text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300">
+                      <span key={l} className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-0.5 text-xs font-medium text-zinc-700">
                         {l}
                       </span>
                     ))}
@@ -681,7 +672,7 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
                 creds.certifications.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5 pt-0.5">
                     {creds.certifications.map((c) => (
-                      <span key={c} className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-0.5 text-xs font-medium text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300">
+                      <span key={c} className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-3 py-0.5 text-xs font-medium text-zinc-700">
                         {c}
                       </span>
                     ))}
@@ -694,7 +685,7 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
         editContent={
           <div className="py-4 space-y-6">
             <div>
-              <label className="mb-2 block text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+              <label className="mb-2 block text-xs font-semibold text-zinc-600 uppercase tracking-wide">
                 Language pairs <span className="text-red-400">*</span>
                 <span className="ml-2 font-normal normal-case text-zinc-400">e.g. ASL-English, Spanish-English</span>
               </label>
@@ -705,8 +696,8 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
                 error={credsErrors.languages}
               />
             </div>
-            <div className="border-t border-zinc-100 dark:border-zinc-800 pt-5">
-              <label className="mb-2 block text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+            <div className="border-t border-zinc-100 pt-5">
+              <label className="mb-2 block text-xs font-semibold text-zinc-600 uppercase tracking-wide">
                 Certifications
                 <span className="ml-2 font-normal normal-case text-zinc-400">e.g. NIC, CDI, RID, CI/CT</span>
               </label>
@@ -726,7 +717,7 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
         title="Work preferences"
         badge={
           prefs.preferredModes.length > 0 ? (
-            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">
               {prefs.preferredModes.length} selected
             </span>
           ) : undefined
@@ -740,8 +731,8 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
                 prefs.preferredModes.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5 pt-0.5">
                     {MODE_OPTIONS.filter((m) => prefs.preferredModes.includes(m.value)).map((m) => (
-                      <span key={m.value} className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-0.5 text-xs font-medium text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300">
-                        <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500" />
+                      <span key={m.value} className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-0.5 text-xs font-medium text-zinc-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-zinc-400" />
                         {m.label}
                       </span>
                     ))}
@@ -769,21 +760,21 @@ export function ProfileEditor({ email, joinedAt, status, isActive, initial }: Pr
                     className={[
                       "flex items-start gap-3.5 rounded-xl border p-4 text-left transition-all",
                       active
-                        ? "border-zinc-900 bg-zinc-950 dark:border-zinc-200 dark:bg-zinc-100"
-                        : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/60",
+                        ? "border-zinc-900 bg-zinc-950"
+                        : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50",
                     ].join(" ")}
                   >
                     <span className={[
                       "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-                      active ? "border-white bg-white dark:border-zinc-900 dark:bg-zinc-900" : "border-zinc-300 dark:border-zinc-600",
+                      active ? "border-white bg-white" : "border-zinc-300",
                     ].join(" ")}>
-                      {active && <span className="block h-1.5 w-1.5 rounded-full bg-zinc-900 dark:bg-white" />}
+                      {active && <span className="block h-1.5 w-1.5 rounded-full bg-zinc-900" />}
                     </span>
                     <div>
-                      <div className={`text-sm font-semibold leading-tight ${active ? "text-white dark:text-zinc-900" : "text-zinc-900 dark:text-zinc-100"}`}>
+                      <div className={`text-sm font-semibold leading-tight ${active ? "text-white" : "text-zinc-900"}`}>
                         {m.label}
                       </div>
-                      <div className={`mt-0.5 text-xs leading-relaxed ${active ? "text-zinc-400 dark:text-zinc-500" : "text-zinc-500 dark:text-zinc-400"}`}>
+                      <div className={`mt-0.5 text-xs leading-relaxed ${active ? "text-zinc-400" : "text-zinc-500"}`}>
                         {m.description}
                       </div>
                     </div>

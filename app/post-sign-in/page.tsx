@@ -40,17 +40,17 @@ export default function PostSignInPage() {
   return (
     <div className="min-h-[60vh] w-full">
       <div className="mx-auto max-w-xl pt-16">
-        <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="text-sm font-semibold tracking-tight text-zinc-950 dark:text-white">
+        <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <div className="text-sm font-semibold tracking-tight text-zinc-950">
             Redirecting
           </div>
-          <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{msg}</div>
+          <div className="mt-2 text-sm text-zinc-600">{msg}</div>
 
-          <div className="mt-5 h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-            <div className="h-full w-1/3 animate-pulse rounded-full bg-zinc-900 dark:bg-white" />
+          <div className="mt-5 h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+            <div className="h-full w-1/3 animate-pulse rounded-full bg-zinc-900" />
           </div>
 
-          <div className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="mt-4 text-xs text-zinc-500">
             If this takes more than a moment, your session is still syncing.
           </div>
         </div>

@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 
 export function StatusPill({ status }: { status: "PENDING" | "APPROVED" | "DENIED" }) {
   const map = {
-    APPROVED: "bg-emerald-500/15 text-emerald-700 border-emerald-500/25 dark:text-emerald-300",
-    PENDING: "bg-amber-500/15 text-amber-800 border-amber-500/25 dark:text-amber-300",
-    DENIED: "bg-rose-500/15 text-rose-800 border-rose-500/25 dark:text-rose-300",
+    APPROVED: "bg-emerald-500/15 text-emerald-700 border-emerald-500/25",
+    PENDING: "bg-amber-500/15 text-amber-800 border-amber-500/25",
+    DENIED: "bg-rose-500/15 text-rose-800 border-rose-500/25",
   }[status];
 
   return (
@@ -22,7 +22,7 @@ export function UserCluster({ status }: { status: "PENDING" | "APPROVED" | "DENI
   return (
     <>
       <StatusPill status={status} />
-      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-2 py-1">
         <UserButton
         afterSignOutUrl=""
         appearance={{ elements: { userButtonAvatarBox: "h-7 w-7" } }} />

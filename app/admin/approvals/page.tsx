@@ -34,10 +34,10 @@ export default async function AdminApprovalsPage() {
     <MotionIn className="space-y-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1.5">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white">
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">
             Approvals
           </h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
+          <p className="text-sm text-zinc-600">
             Review pending interpreter accounts. Approving grants access to the interpreter job feed (if active).
           </p>
         </div>

@@ -144,18 +144,18 @@ export default async function InterpreterJobsPage() {
     <MotionIn className="space-y-6">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white">
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">
             Job feed
           </h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-1 text-sm text-zinc-500">
             Browse open assignments. Eligibility and availability are checked automatically.
           </p>
         </div>
-        <div className="flex items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400">
-          <span><strong className="text-zinc-900 dark:text-white">{openCount}</strong> open</span>
-          <span><strong className="text-zinc-900 dark:text-white">{assignedCount}</strong> mine</span>
+        <div className="flex items-center gap-4 text-sm text-zinc-500">
+          <span><strong className="text-zinc-900">{openCount}</strong> open</span>
+          <span><strong className="text-zinc-900">{assignedCount}</strong> mine</span>
           {urgentCount > 0 && (
-            <span className="font-semibold text-rose-600 dark:text-rose-400">{urgentCount} urgent</span>
+            <span className="font-semibold text-rose-600">{urgentCount} urgent</span>
           )}
         </div>
       </header>

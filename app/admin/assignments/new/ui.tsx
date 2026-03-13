@@ -5,12 +5,17 @@ import { useState, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createAssignmentAction } from "./actions";
+import {
+  Loader2, Building2, Phone, Tv2, Monitor, Save, ArrowRight,
+  User, Languages, Calendar, MapPin, Zap, DollarSign, FileText,
+  ShieldCheck,
+} from "lucide-react";
 
 const DELIVERY_MODES = [
-  { value: "IN_PERSON",    label: "In-person",         desc: "On-site at client location" },
-  { value: "REMOTE",       label: "Phone / Remote",     desc: "Over-the-phone interpreting" },
-  { value: "VIDEO_RELAY",  label: "Video relay (VRS)",  desc: "Video relay service" },
-  { value: "VIDEO_REMOTE", label: "Video remote (VRI)", desc: "Video remote interpreting" },
+  { value: "IN_PERSON",    label: "In-person",         desc: "On-site at client location",    icon: Building2 },
+  { value: "REMOTE",       label: "Phone / Remote",     desc: "Over-the-phone interpreting",   icon: Phone },
+  { value: "VIDEO_RELAY",  label: "Video relay (VRS)",  desc: "Video relay service",           icon: Tv2 },
+  { value: "VIDEO_REMOTE", label: "Video remote (VRI)", desc: "Video remote interpreting",     icon: Monitor },
 ] as const;
 
 const ASSIGNMENT_TYPES = [
@@ -33,15 +38,20 @@ function offsetISO(hours: number) {
 
 // ─── small UI atoms ───────────────────────────────────────────────────────────
 
-const inp = "block w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition focus:border-zinc-400 focus:ring-4 focus:ring-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-800/60";
+const inp = "block w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition focus:border-zinc-400 focus:ring-4 focus:ring-zinc-100";
 
-function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
+function FieldGroup({ title, icon: Icon, children }: { title: string; icon?: React.ElementType; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden">
-      <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
-        <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">{title}</h2>
+    <div className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white">
+      <div className="flex items-center gap-2 border-b border-zinc-100 px-5 py-4">
+        {Icon && (
+          <div className="grid h-7 w-7 place-items-center rounded-lg bg-zinc-100 ring-1 ring-zinc-200/60">
+            <Icon className="size-3.5 text-zinc-600" />
+          </div>
+        )}
+        <h2 className="text-sm font-semibold text-zinc-900">{title}</h2>
       </div>
-      <div className="p-6">{children}</div>
+      <div className="p-5">{children}</div>
     </div>
   );
 }
@@ -51,12 +61,12 @@ function F({ label, hint, required, error, children }: {
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-600">
         {label}{required && <span className="text-rose-500 ml-0.5">*</span>}
       </label>
-      {hint && <p className="mb-2 text-[11px] text-zinc-400 dark:text-zinc-500">{hint}</p>}
+      {hint && <p className="mb-2 text-[11px] text-zinc-400">{hint}</p>}
       {children}
-      {error && <p className="mt-1.5 text-xs text-rose-600 dark:text-rose-400">{error}</p>}
+      {error && <p className="mt-1.5 text-xs text-rose-600">{error}</p>}
     </div>
   );
 }
@@ -74,7 +84,7 @@ function TagInput({ tags, onChange, placeholder }: {
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {tags.map((t) => (
-            <span key={t} className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+            <span key={t} className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs font-medium text-zinc-700">
               {t}
               <button type="button" onClick={() => onChange(tags.filter((x) => x !== t))}
                 className="text-zinc-400 hover:text-rose-500 transition-colors">×</button>
@@ -87,7 +97,7 @@ function TagInput({ tags, onChange, placeholder }: {
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
           className={inp} />
         <button type="button" onClick={add}
-          className="shrink-0 rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800">
+          className="shrink-0 rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors">
           Add
         </button>
       </div>
@@ -228,27 +238,30 @@ export function CreateAssignmentForm() {
     <div className="space-y-5">
 
       {/* Sticky action bar */}
-      <div className="sticky top-3 z-20 flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/95 px-5 py-3.5 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
+      <div className="sticky top-3 z-20 flex items-center justify-between rounded-xl border border-zinc-200/80 bg-white/95 px-5 py-3.5 shadow-sm backdrop-blur-xl">
         <div>
-          <div className="text-sm font-semibold text-zinc-950 dark:text-white">
-            {title || <span className="text-zinc-400 font-normal">New assignment</span>}
-          </div>
-          <div className="text-xs text-zinc-400 mt-0.5">Fields marked * are required</div>
+          <p className="text-sm font-semibold text-zinc-950">
+            {title || <span className="font-normal text-zinc-400">New assignment</span>}
+          </p>
+          <p className="mt-0.5 text-xs text-zinc-400">Fields marked * are required</p>
         </div>
         <div className="flex gap-2">
           <button type="button" disabled={isPending} onClick={() => submit("save")}
-            className="h-10 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-            {isPending ? "Saving…" : "Save"}
+            className="flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50">
+            {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            Save
           </button>
           <button type="button" disabled={isPending} onClick={() => submit("view")}
-            className="h-10 rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white hover:bg-zinc-700 transition-colors disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100">
-            {isPending ? "Saving…" : "Save & open →"}
+            className="flex h-9 items-center gap-2 rounded-lg bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-50">
+            {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+            {isPending ? "Saving…" : "Save & open"}
+            {!isPending && <ArrowRight className="size-4" />}
           </button>
         </div>
       </div>
 
       {/* ── Section 1: Client & job identity ──────────────────────────────── */}
-      <FieldGroup title="Client & job">
+      <FieldGroup title="Client & job" icon={User}>
         <div className="grid gap-4 sm:grid-cols-2">
           <F label="Client name" required error={errors.clientName}>
             <input value={clientName} onChange={(e) => setClientName(e.target.value)}
@@ -276,20 +289,24 @@ export function CreateAssignmentForm() {
       </FieldGroup>
 
       {/* ── Section 2: Delivery mode ───────────────────────────────────────── */}
-      <FieldGroup title="Delivery mode">
+      <FieldGroup title="Delivery mode" icon={Building2}>
         <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
           {DELIVERY_MODES.map((m) => {
             const active = deliveryMode === m.value;
+            const ModeIcon = m.icon;
             return (
               <button key={m.value} type="button" onClick={() => setDeliveryMode(m.value)}
                 className={[
-                  "flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition-all",
+                  "flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-all",
                   active
-                    ? "border-zinc-900 bg-zinc-900 dark:border-zinc-100 dark:bg-zinc-100"
-                    : "border-zinc-200 bg-white hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-600",
+                    ? "border-zinc-900 bg-zinc-900 shadow-sm"
+                    : "border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-sm",
                 ].join(" ")}>
-                <span className={`text-sm font-semibold ${active ? "text-white dark:text-zinc-900" : "text-zinc-900 dark:text-zinc-100"}`}>{m.label}</span>
-                <span className={`text-[11px] leading-tight ${active ? "text-zinc-400 dark:text-zinc-500" : "text-zinc-500 dark:text-zinc-400"}`}>{m.desc}</span>
+                <ModeIcon className={`size-5 ${active ? "text-zinc-300" : "text-zinc-400"}`} />
+                <div>
+                  <p className={`text-sm font-semibold ${active ? "text-white" : "text-zinc-900"}`}>{m.label}</p>
+                  <p className={`text-[11px] leading-tight ${active ? "text-zinc-400" : "text-zinc-500"}`}>{m.desc}</p>
+                </div>
               </button>
             );
           })}
@@ -297,7 +314,7 @@ export function CreateAssignmentForm() {
       </FieldGroup>
 
       {/* ── Section 3: Schedule & staffing ────────────────────────────────── */}
-      <FieldGroup title="Schedule & staffing">
+      <FieldGroup title="Schedule & staffing" icon={Calendar}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <F label="Start time" required error={errors.scheduledStart}>
             <input type="datetime-local" value={scheduledStart}
@@ -317,13 +334,13 @@ export function CreateAssignmentForm() {
               className={[
                 "flex items-center gap-3 w-full rounded-xl border px-4 py-3 text-left transition-colors",
                 isUrgent
-                  ? "border-rose-300 bg-rose-50 dark:border-rose-700 dark:bg-rose-950/30"
-                  : "border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900",
+                  ? "border-rose-300 bg-rose-50"
+                  : "border-zinc-200 bg-white hover:bg-zinc-50",
               ].join(" ")}>
               <span className={`h-4 w-4 rounded border-2 flex items-center justify-center ${isUrgent ? "border-rose-500 bg-rose-500" : "border-zinc-300"}`}>
                 {isUrgent && <svg className="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
               </span>
-              <span className={`text-sm font-medium ${isUrgent ? "text-rose-700 dark:text-rose-300" : "text-zinc-700 dark:text-zinc-300"}`}>
+              <span className={`text-sm font-medium ${isUrgent ? "text-rose-700" : "text-zinc-700"}`}>
                 Mark as urgent
               </span>
             </button>
@@ -333,7 +350,7 @@ export function CreateAssignmentForm() {
 
       {/* ── Section 4: Location / Remote ──────────────────────────────────── */}
       {!isRemote ? (
-        <FieldGroup title="Location & access">
+        <FieldGroup title="Location & access" icon={MapPin}>
           <div className="grid gap-4 sm:grid-cols-2">
             <F label="Location name" required error={errors.location}
               hint="Short name shown in listings (e.g. St. Mary Hospital, Room 4B)">
@@ -363,7 +380,7 @@ export function CreateAssignmentForm() {
           </div>
         </FieldGroup>
       ) : (
-        <FieldGroup title="Remote details">
+        <FieldGroup title="Remote details" icon={Phone}>
           <div className="grid gap-4 sm:grid-cols-2">
             <F label="Location / description" required error={errors.location}
               hint="Brief descriptor shown in the feed">
@@ -388,8 +405,8 @@ export function CreateAssignmentForm() {
       )}
 
       {/* ── Section 5: Requirements ────────────────────────────────────────── */}
-      <FieldGroup title="Interpreter requirements">
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-5">
+      <FieldGroup title="Interpreter requirements" icon={ShieldCheck}>
+        <p className="text-xs text-zinc-500 mb-5">
           All fields are optional. Interpreters who don't meet requirements will see what's blocking them and won't be able to self-pick.
         </p>
         <div className="grid gap-5 sm:grid-cols-2">
@@ -422,11 +439,11 @@ export function CreateAssignmentForm() {
                       className={[
                         "flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-colors",
                         active
-                          ? "border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900"
-                          : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300",
+                          ? "border-zinc-900 bg-zinc-900 text-white"
+                          : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50",
                       ].join(" ")}>
-                      <span className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${active ? "border-white dark:border-zinc-900" : "border-zinc-300 dark:border-zinc-600"}`}>
-                        {active && <span className="block h-1.5 w-1.5 rounded-full bg-white dark:bg-zinc-900" />}
+                      <span className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${active ? "border-white" : "border-zinc-300"}`}>
+                        {active && <span className="block h-1.5 w-1.5 rounded-full bg-white" />}
                       </span>
                       {label}
                     </button>
@@ -439,11 +456,11 @@ export function CreateAssignmentForm() {
       </FieldGroup>
 
       {/* ── Section 6: Compensation ────────────────────────────────────────── */}
-      <FieldGroup title="Compensation">
+      <FieldGroup title="Compensation" icon={DollarSign}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <F label="Rate" hint="Leave blank if undisclosed">
             <div className="flex">
-              <span className="inline-flex items-center rounded-l-xl border border-r-0 border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800">$</span>
+              <span className="inline-flex items-center rounded-l-xl border border-r-0 border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-500">$</span>
               <input type="number" min="0" step="0.01" value={compRate} onChange={(e) => setCompRate(e.target.value)}
                 placeholder="45.00" className={inp + " rounded-l-none"} />
             </div>
@@ -464,7 +481,7 @@ export function CreateAssignmentForm() {
           <label className="flex items-center gap-3 cursor-pointer">
             <input type="checkbox" checked={compVisible} onChange={(e) => setCompVisible(e.target.checked)}
               className="h-4 w-4 rounded border-zinc-300" />
-            <span className="text-sm text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm text-zinc-700">
               Show compensation to interpreters in their job feed
             </span>
           </label>
@@ -472,7 +489,7 @@ export function CreateAssignmentForm() {
       </FieldGroup>
 
       {/* ── Section 7: Notes ──────────────────────────────────────────────── */}
-      <FieldGroup title="Notes">
+      <FieldGroup title="Notes" icon={FileText}>
         <div className="grid gap-4">
           <F label="Special notes" hint="Visible to assigned interpreters — access codes, context, etc.">
             <textarea value={specialNotes} onChange={(e) => setSpecialNotes(e.target.value)}

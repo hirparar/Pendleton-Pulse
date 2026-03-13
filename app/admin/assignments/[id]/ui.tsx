@@ -9,6 +9,7 @@ import {
   assignInterpreterAction,
   removeInterpreterAction,
 } from "./actions";
+import { Loader2, Pencil as PencilIcon, CheckCircle2, UserPlus, X, Search } from "lucide-react";
 
 // ─── Constants & types ────────────────────────────────────────────────────────
 
@@ -115,24 +116,27 @@ function isValidUrl(s: string) {
 }
 
 const STATUS_STYLES: Record<Status, string> = {
-  OPEN: "bg-sky-100 text-sky-800 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800",
-  ASSIGNED: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
-  COMPLETED: "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700",
-  CANCELLED: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800",
+  OPEN: "bg-sky-100 text-sky-800 border-sky-200",
+  ASSIGNED: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  COMPLETED: "bg-zinc-100 text-zinc-600 border-zinc-200",
+  CANCELLED: "bg-rose-100 text-rose-800 border-rose-200",
 };
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
-const CLS_INPUT = "w-full bg-white dark:bg-zinc-900 border border-blue-500 rounded-md px-2.5 py-1.5 text-sm text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20";
-const CLS_INPUT_ERR = "w-full bg-white dark:bg-zinc-900 border border-rose-500 rounded-md px-2.5 py-1.5 text-sm text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-rose-500/20";
-const CLS_BTN_SAVE = "rounded-md bg-blue-600 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50";
-const CLS_BTN_CANCEL = "rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50";
-const CLS_DISPLAY = "group flex items-start gap-2 rounded-md px-2 py-1.5 -mx-2 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors min-h-[32px]";
+const CLS_INPUT = "w-full bg-white border border-zinc-300 rounded-lg px-2.5 py-1.5 text-sm text-zinc-900 outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100";
+const CLS_INPUT_ERR = "w-full bg-white border border-rose-400 rounded-lg px-2.5 py-1.5 text-sm text-zinc-900 outline-none focus:ring-2 focus:ring-rose-100";
+const CLS_BTN_SAVE = "flex items-center gap-1.5 rounded-lg bg-zinc-950 px-3 py-1.5 text-xs font-semibold text-white hover:bg-zinc-800 disabled:opacity-50 transition-colors";
+const CLS_BTN_CANCEL = "rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50 transition-colors";
+const CLS_DISPLAY = "group flex items-start gap-2 rounded-lg px-2 py-1.5 -mx-2 hover:bg-zinc-50 cursor-pointer transition-colors min-h-[32px]";
 
 function SaveCancelRow({ onSave, onCancel, saving }: { onSave: () => void; onCancel: () => void; saving: boolean }) {
   return (
     <div className="flex gap-1.5 mt-1.5">
-      <button onClick={onSave} disabled={saving} className={CLS_BTN_SAVE}>{saving ? "Saving…" : "Save"}</button>
+      <button onClick={onSave} disabled={saving} className={CLS_BTN_SAVE}>
+        {saving ? <Loader2 className="size-3 animate-spin" /> : null}
+        {saving ? "Saving…" : "Save"}
+      </button>
       <button onClick={onCancel} disabled={saving} className={CLS_BTN_CANCEL}>Cancel</button>
     </div>
   );
@@ -142,7 +146,7 @@ function FieldError({ msg }: { msg: string | null }) {
   return <p className="mt-1 text-xs text-rose-500">{msg}</p>;
 }
 function Pencil() {
-  return <span className="opacity-0 group-hover:opacity-100 text-xs text-zinc-400 shrink-0 mt-0.5 transition-opacity">✎</span>;
+  return <PencilIcon className="size-3 shrink-0 mt-1 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" />;
 }
 
 // ─── InlineText ───────────────────────────────────────────────────────────────
@@ -184,7 +188,7 @@ function InlineText({
 
   if (!editing) return (
     <div className={CLS_DISPLAY} onClick={() => setEditing(true)}>
-      <span className={`flex-1 text-sm ${mono ? "font-mono" : ""} ${!value ? "text-zinc-400 dark:text-zinc-600 italic" : "text-zinc-900 dark:text-zinc-100"}`}>
+      <span className={`flex-1 text-sm ${mono ? "font-mono" : ""} ${!value ? "text-zinc-400 italic" : "text-zinc-900"}`}>
         {value || placeholder || "Click to edit…"}
       </span>
       <Pencil />
@@ -237,7 +241,7 @@ function InlineUrl({ value, onSave, placeholder }: {
     <div className={CLS_DISPLAY} onClick={() => setEditing(true)}>
       {value
         ? <a href={value} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-            className="flex-1 text-sm text-blue-600 dark:text-blue-400 underline underline-offset-2 break-all hover:text-blue-700">
+            className="flex-1 text-sm text-blue-600 underline underline-offset-2 break-all hover:text-blue-700">
             {value} ↗
           </a>
         : <span className="flex-1 text-sm text-zinc-400 italic">{placeholder ?? "None"}</span>
@@ -304,7 +308,7 @@ function InlineNumber({
 
   if (!editing) return (
     <div className={CLS_DISPLAY} onClick={() => setEditing(true)}>
-      <span className={`flex-1 text-sm ${!display ? "text-zinc-400 italic" : "text-zinc-900 dark:text-zinc-100"}`}>
+      <span className={`flex-1 text-sm ${!display ? "text-zinc-400 italic" : "text-zinc-900"}`}>
         {display ?? placeholder ?? "Click to set…"}
       </span>
       <Pencil />
@@ -358,7 +362,7 @@ function InlineSelect({ value, options, onSave }: {
 
   if (!editing) return (
     <div className={CLS_DISPLAY} onClick={() => setEditing(true)}>
-      <span className="flex-1 text-sm text-zinc-900 dark:text-zinc-100">{currentLabel}</span>
+      <span className="flex-1 text-sm text-zinc-900">{currentLabel}</span>
       <Pencil />
     </div>
   );
@@ -402,7 +406,7 @@ function InlineTimezone({ value, onSave }: {
 
   if (!editing) return (
     <div className={CLS_DISPLAY} onClick={() => setEditing(true)}>
-      <span className="flex-1 text-sm font-mono text-zinc-900 dark:text-zinc-100">{value}</span>
+      <span className="flex-1 text-sm font-mono text-zinc-900">{value}</span>
       <Pencil />
     </div>
   );
@@ -411,7 +415,7 @@ function InlineTimezone({ value, onSave }: {
     <div className="space-y-1.5">
       <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search timezone…" autoFocus className={CLS_INPUT} />
       <select size={6} value={draft} onChange={e => setDraft(e.target.value)}
-        className="w-full bg-white dark:bg-zinc-900 border border-blue-500 rounded-md px-2.5 py-1 text-sm text-zinc-900 dark:text-white outline-none font-mono">
+        className="w-full bg-white border border-blue-500 rounded-md px-2.5 py-1 text-sm text-zinc-900 outline-none font-mono">
         {filtered.map(tz => <option key={tz} value={tz}>{tz}</option>)}
         {filtered.length === 0 && <option disabled>No match</option>}
       </select>
@@ -449,7 +453,7 @@ function InlineDatetime({ value, onSave, validate }: {
 
   if (!editing) return (
     <div className={CLS_DISPLAY} onClick={() => setEditing(true)}>
-      <span className="flex-1 text-sm text-zinc-900 dark:text-zinc-100">{fmt(value)}</span>
+      <span className="flex-1 text-sm text-zinc-900">{fmt(value)}</span>
       <Pencil />
     </div>
   );
@@ -483,12 +487,12 @@ function InlineToggle({ value, labelOn, labelOff, onSave }: {
 
   return (
     <button onClick={toggle} disabled={saving}
-      className="flex items-center gap-2.5 rounded-md px-2 py-1.5 -mx-2 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors">
-      <div className={`relative w-8 h-4 rounded-full transition-colors shrink-0 ${value ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-600"}`}>
+      className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 -mx-2 hover:bg-zinc-50 transition-colors">
+      <div className={`relative w-8 h-4 rounded-full transition-colors shrink-0 ${value ? "bg-emerald-500" : "bg-zinc-300"}`}>
         <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${value ? "translate-x-4" : ""}`} />
       </div>
-      <span className="text-sm text-zinc-700 dark:text-zinc-300">{value ? labelOn : labelOff}</span>
-      {saving && <span className="text-xs text-zinc-400 ml-1">Saving…</span>}
+      <span className="text-sm text-zinc-700">{value ? labelOn : labelOff}</span>
+      {saving && <Loader2 className="size-3 animate-spin text-zinc-400 ml-1" />}
     </button>
   );
 }
@@ -521,7 +525,7 @@ function InlineTagText({ tags, onSave, placeholder }: {
   }
 
   if (!editing) return (
-    <div className="group flex flex-wrap items-center gap-1.5 rounded-md px-2 py-1.5 -mx-2 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors min-h-[32px]"
+    <div className="group flex flex-wrap items-center gap-1.5 rounded-md px-2 py-1.5 -mx-2 hover:bg-zinc-100 cursor-pointer transition-colors min-h-[32px]"
       onClick={() => setEditing(true)}>
       {tags.length > 0
         ? tags.map(t => <SmallTag key={t}>{t}</SmallTag>)
@@ -535,7 +539,7 @@ function InlineTagText({ tags, onSave, placeholder }: {
       {draft.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {draft.map(t => (
-            <span key={t} className="inline-flex items-center gap-1 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+            <span key={t} className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-medium text-zinc-700">
               {t}
               <button onClick={() => setDraft(draft.filter(x => x !== t))}
                 className="text-zinc-400 hover:text-rose-500 leading-none ml-0.5">×</button>
@@ -549,7 +553,7 @@ function InlineTagText({ tags, onSave, placeholder }: {
           placeholder="Type abbreviation, press Enter (e.g. NIC, RID)"
           className={CLS_INPUT} />
         <button onClick={addTag}
-          className="shrink-0 rounded-md border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+          className="shrink-0 rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-600 hover:bg-zinc-50">
           Add
         </button>
       </div>
@@ -582,7 +586,7 @@ function InlineDeliveryModeMulti({ value, onSave }: {
   }
 
   if (!editing) return (
-    <div className="group flex flex-wrap items-center gap-1.5 rounded-md px-2 py-1.5 -mx-2 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors min-h-[32px]"
+    <div className="group flex flex-wrap items-center gap-1.5 rounded-md px-2 py-1.5 -mx-2 hover:bg-zinc-100 cursor-pointer transition-colors min-h-[32px]"
       onClick={() => setEditing(true)}>
       {value.length > 0
         ? value.map(m => <SmallTag key={m}>{DELIVERY_LABELS[m] ?? m}</SmallTag>)
@@ -600,8 +604,8 @@ function InlineDeliveryModeMulti({ value, onSave }: {
             <button key={m} type="button" onClick={() => toggle(m)}
               className={`h-8 rounded-lg border px-3 text-xs font-medium transition-colors ${
                 active
-                  ? "border-blue-600 bg-blue-600 text-white"
-                  : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                  ? "border-zinc-900 bg-zinc-950 text-white"
+                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
               }`}>
               {DELIVERY_LABELS[m]}
             </button>
@@ -618,7 +622,7 @@ function InlineDeliveryModeMulti({ value, onSave }: {
 
 function SmallTag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+    <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-medium text-zinc-700">
       {children}
     </span>
   );
@@ -631,10 +635,10 @@ function Section({ title, children, defaultOpen = true }: {
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-zinc-100 dark:border-zinc-800 last:border-0">
+    <div className="border-b border-zinc-100 last:border-0">
       <button onClick={() => setOpen(v => !v)}
-        className="flex w-full items-center justify-between px-6 py-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors text-left">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{title}</span>
+        className="flex w-full items-center justify-between px-6 py-3.5 hover:bg-zinc-50 transition-colors text-left">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">{title}</span>
         <svg className={`w-3.5 h-3.5 text-zinc-400 transition-transform ${open ? "rotate-180" : ""}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -649,7 +653,7 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
   return (
     <div className="flex items-start gap-4 py-0.5 min-h-[36px]">
       <div className="w-44 shrink-0 pt-2">
-        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</span>
+        <span className="text-xs font-medium text-zinc-500">{label}</span>
         {hint && <p className="text-[10px] text-zinc-400 leading-tight mt-0.5">{hint}</p>}
       </div>
       <div className="flex-1 min-w-0 pt-0.5">{children}</div>
@@ -680,8 +684,8 @@ function TitleEditor({ value, onSave }: { value: string; onSave: (v: string) => 
 
   if (!editing) return (
     <div onClick={() => setEditing(true)}
-      className="group flex items-start gap-2 cursor-text rounded-lg px-1 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors -mx-1">
-      <h1 className="text-2xl font-bold text-zinc-950 dark:text-white tracking-tight leading-tight">{value}</h1>
+      className="group flex items-start gap-2 cursor-text rounded-lg px-1 py-1 hover:bg-zinc-100 transition-colors -mx-1">
+      <h1 className="text-2xl font-bold text-zinc-950 tracking-tight leading-tight">{value}</h1>
       <span className="opacity-0 group-hover:opacity-100 mt-1.5 text-sm text-zinc-400 transition-opacity shrink-0">✎</span>
     </div>
   );
@@ -691,7 +695,7 @@ function TitleEditor({ value, onSave }: { value: string; onSave: (v: string) => 
       <input ref={ref} value={draft} maxLength={200}
         onChange={e => { setDraft(e.target.value); setError(null); }}
         onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setDraft(value); setError(null); setEditing(false); } }}
-        className={`w-full bg-white dark:bg-zinc-900 border rounded-lg px-3 py-2 text-2xl font-bold text-zinc-950 dark:text-white outline-none focus:ring-2 tracking-tight ${error ? "border-rose-500 focus:ring-rose-500/20" : "border-blue-500 focus:ring-blue-500/20"}`} />
+        className={`w-full bg-white border rounded-lg px-3 py-2 text-2xl font-bold text-zinc-950 outline-none focus:ring-2 tracking-tight ${error ? "border-rose-400 focus:ring-rose-100" : "border-zinc-300 focus:ring-zinc-100"}`} />
       <div className="flex items-center justify-between mt-1">
         <FieldError msg={error} />
         <span className="text-[11px] text-zinc-400">{draft.length}/200</span>
@@ -737,10 +741,10 @@ function StaffingSection({
         <div className="space-y-2">
           {active.map(link => (
             <div key={link.linkId}
-              className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/20 px-4 py-3">
+              className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3">
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-zinc-900 dark:text-white">{link.label}</div>
-                <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                <div className="text-sm font-semibold text-zinc-900">{link.label}</div>
+                <div className="text-xs text-zinc-500 mt-0.5">
                   {[link.email, link.location].filter(Boolean).join(" · ")}
                   {link.certifications.length > 0 && ` · ${link.certifications.join(", ")}`}
                 </div>
@@ -748,7 +752,7 @@ function StaffingSection({
               </div>
               {!isClosed && (
                 <button onClick={() => onRemove(link.userProfileId)} disabled={isPending}
-                  className="shrink-0 rounded-lg border border-rose-200 dark:border-rose-800 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 disabled:opacity-50">
+                  className="shrink-0 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50">
                   Remove
                 </button>
               )}
@@ -756,47 +760,51 @@ function StaffingSection({
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 px-4 py-6 text-center text-sm text-zinc-400">
+        <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-6 text-center text-sm text-zinc-400">
           No interpreters assigned yet
         </div>
       )}
 
       {!isClosed && (
         isFull ? (
-          <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 px-4 py-2.5 text-sm font-medium text-emerald-700 dark:text-emerald-300">
-            ✓ Fully staffed — remove an interpreter to free a slot
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">
+            <CheckCircle2 className="size-4 shrink-0" />
+            Fully staffed — remove an interpreter to free a slot
           </div>
         ) : !showAdd ? (
           <button onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors w-full">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
+            className="flex items-center gap-2 rounded-xl border border-dashed border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-600 hover:border-zinc-400 hover:text-zinc-900 transition-colors w-full">
+            <UserPlus className="size-4" />
             Assign interpreter
           </button>
         ) : (
-          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-950/30 p-4 space-y-3">
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-zinc-900 dark:text-white">Assign interpreter</span>
+              <span className="text-sm font-semibold text-zinc-900">Assign interpreter</span>
               <button onClick={() => { setShowAdd(false); setSearch(""); }}
-                className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">×</button>
+                className="grid h-6 w-6 place-items-center rounded-md text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 transition-colors">
+                <X className="size-3.5" />
+              </button>
             </div>
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search name, email, language, certification…"
-              className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400" />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search name, email, language, certification…"
+                className="w-full bg-white border border-zinc-200 rounded-lg pl-9 pr-3 py-2 text-sm outline-none focus:border-zinc-300 focus:ring-2 focus:ring-zinc-100 text-zinc-900 placeholder:text-zinc-400" />
+            </div>
             <div className="max-h-64 space-y-1.5 overflow-auto">
               {candidates.map(i => (
                 <div key={i.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2.5">
+                  className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5">
                   <div className="min-w-0">
-                    <div className="text-sm font-medium text-zinc-900 dark:text-white truncate">{i.label}</div>
+                    <div className="text-sm font-medium text-zinc-900 truncate">{i.label}</div>
                     <div className="text-xs text-zinc-500 truncate">
                       {[i.email, i.location].filter(Boolean).join(" · ")}
                       {i.certifications.length > 0 && ` · ${i.certifications.join(", ")}`}
                     </div>
                   </div>
                   <button onClick={() => { onAssign(i.id); setShowAdd(false); setSearch(""); }} disabled={isPending}
-                    className="shrink-0 rounded-lg bg-zinc-900 dark:bg-white px-3 py-1.5 text-xs font-semibold text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-100 disabled:opacity-50">
+                    className="shrink-0 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-zinc-700 disabled:opacity-50">
                     Assign
                   </button>
                 </div>
@@ -811,20 +819,20 @@ function StaffingSection({
 
       {removed.length > 0 && (
         <details className="mt-1">
-          <summary className="cursor-pointer text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 select-none list-none flex items-center gap-1.5">
+          <summary className="cursor-pointer text-xs font-medium text-zinc-500 hover:text-zinc-700 select-none list-none flex items-center gap-1.5">
             <span>▸</span> {removed.length} removed interpreter{removed.length > 1 ? "s" : ""}
           </summary>
           <div className="mt-2 space-y-1.5">
             {removed.map(link => (
               <div key={link.linkId}
-                className="flex items-center justify-between gap-3 rounded-lg border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 px-3 py-2.5 opacity-70">
+                className="flex items-center justify-between gap-3 rounded-lg border border-zinc-100 bg-zinc-50/50 px-3 py-2.5 opacity-70">
                 <div>
-                  <div className="text-sm text-zinc-600 dark:text-zinc-400 line-through">{link.label}</div>
+                  <div className="text-sm text-zinc-600 line-through">{link.label}</div>
                   <div className="text-[11px] text-zinc-400 mt-0.5">Removed {link.removedAt ? fmtShort(link.removedAt) : ""}</div>
                 </div>
                 {!isClosed && !isFull && (
                   <button onClick={() => onAssign(link.userProfileId)} disabled={isPending}
-                    className="shrink-0 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50">
+                    className="shrink-0 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50">
                     Re-assign
                   </button>
                 )}
@@ -878,9 +886,9 @@ function VisibilitySideCard({
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-      <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Visibility</span>
+    <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
+      <div className="px-4 py-3 border-b border-zinc-100">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">Visibility</span>
       </div>
       <div className="p-3 space-y-3">
         <div className="grid grid-cols-2 gap-1.5">
@@ -888,8 +896,8 @@ function VisibilitySideCard({
             <button key={m} onClick={() => { setMode(m); setDirty(true); }}
               className={`h-9 rounded-xl text-xs font-semibold border transition-colors ${
                 mode === m
-                  ? "border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900"
-                  : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
               }`}>
               {m === "ALL" ? "Public feed" : "Restricted"}
             </button>
@@ -899,10 +907,10 @@ function VisibilitySideCard({
         {mode === "RESTRICTED" && (
           <div className="space-y-2">
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Filter interpreters…"
-              className="w-full text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-500 text-zinc-900 dark:text-white placeholder:text-zinc-400" />
-            <div className="max-h-44 space-y-0.5 overflow-auto rounded-lg border border-zinc-100 dark:border-zinc-800 p-1.5">
+              className="w-full text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-500 text-zinc-900 placeholder:text-zinc-400" />
+            <div className="max-h-44 space-y-0.5 overflow-auto rounded-lg border border-zinc-100 p-1.5">
               {filtered.map(i => (
-                <label key={i.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                <label key={i.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 cursor-pointer hover:bg-zinc-50">
                   <input type="checkbox" checked={allowed.includes(i.id)}
                     onChange={e => {
                       const next = new Set(allowed);
@@ -910,7 +918,7 @@ function VisibilitySideCard({
                       setAllowed(Array.from(next)); setDirty(true);
                     }} className="rounded" />
                   <div className="min-w-0">
-                    <div className="text-xs text-zinc-900 dark:text-white truncate">{i.label}</div>
+                    <div className="text-xs text-zinc-900 truncate">{i.label}</div>
                     {i.email && <div className="text-[11px] text-zinc-400 truncate">{i.email}</div>}
                   </div>
                 </label>
@@ -921,7 +929,7 @@ function VisibilitySideCard({
         )}
 
         <button onClick={save} disabled={saving || isPending || !dirty}
-          className="w-full rounded-xl bg-zinc-900 dark:bg-white py-2 text-xs font-semibold text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-100 disabled:opacity-40 transition-colors">
+          className="w-full rounded-xl bg-zinc-900 py-2 text-xs font-semibold text-white hover:bg-zinc-700 disabled:opacity-40 transition-colors">
           {saving ? "Saving…" : "Save visibility"}
         </button>
       </div>
@@ -933,21 +941,21 @@ function VisibilitySideCard({
 
 function AuditSection({ auditEvents }: { auditEvents: AuditEvent[] }) {
   if (auditEvents.length === 0) return (
-    <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 px-4 py-8 text-center text-sm text-zinc-400">
+    <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-8 text-center text-sm text-zinc-400">
       No audit events yet.
     </div>
   );
   return (
     <div>
       {auditEvents.map(e => (
-        <div key={e.id} className="flex gap-3 py-2.5 border-b border-zinc-50 dark:border-zinc-800/60 last:border-0">
-          <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600 shrink-0" />
+        <div key={e.id} className="flex gap-3 py-2.5 border-b border-zinc-50 last:border-0">
+          <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-zinc-300 shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline justify-between gap-2">
-              <span className="text-xs font-mono font-semibold text-zinc-700 dark:text-zinc-300">{e.action}</span>
+              <span className="text-xs font-mono font-semibold text-zinc-700">{e.action}</span>
               <span className="text-[11px] text-zinc-400 shrink-0">{fmtShort(e.createdAt)}</span>
             </div>
-            <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">{e.actor ?? "system"}</div>
+            <div className="text-[11px] text-zinc-500 mt-0.5">{e.actor ?? "system"}</div>
             {e.note && <div className="text-xs italic text-zinc-400 mt-0.5">"{e.note}"</div>}
           </div>
         </div>
@@ -1045,22 +1053,22 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
               {serverStatus}
             </span>
             {data.isUrgent && (
-              <span className="inline-flex items-center gap-1 rounded border border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/40 px-2 py-0.5 text-xs font-bold text-rose-700 dark:text-rose-300">
+              <span className="inline-flex items-center gap-1 rounded border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-bold text-rose-700">
                 🔴 URGENT
               </span>
             )}
             <span className={`inline-flex items-center rounded border px-2 py-0.5 text-xs font-medium ${
               assignedCount >= data.interpretersNeeded
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
-                : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-amber-200 bg-amber-50 text-amber-700"
             }`}>
               {assignedCount}/{data.interpretersNeeded} filled
             </span>
-            <span className="inline-flex items-center rounded border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <span className="inline-flex items-center rounded border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-medium text-zinc-600">
               {DELIVERY_LABELS[data.deliveryMode] ?? data.deliveryMode}
             </span>
             {data.visibilityMode === "RESTRICTED" && (
-              <span className="inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+              <span className="inline-flex items-center gap-1 rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
                 🔒 Restricted
               </span>
             )}
@@ -1069,7 +1077,7 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
         </div>
 
         {/* Detail card */}
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+        <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
 
           {/* Details */}
           <Section title="Details">
@@ -1134,7 +1142,7 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
               />
             </Row>
             <Row label="Duration">
-              <div className="px-2 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <div className="px-2 py-2 text-sm font-medium text-zinc-700">
                 {dur(data.scheduledStart, data.scheduledEnd)}
               </div>
             </Row>
@@ -1284,17 +1292,17 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
         {isClosed && (
           <div className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
             serverStatus === "COMPLETED"
-              ? "border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
-              : "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300"
+              ? "border-zinc-200 bg-zinc-100 text-zinc-600"
+              : "border-rose-200 bg-rose-50 text-rose-700"
           }`}>
             {serverStatus === "COMPLETED" ? "✓ Completed. Staffing locked." : "✕ Cancelled. Staffing locked."}
           </div>
         )}
 
         {/* Status picker */}
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-          <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Status</span>
+        <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
+          <div className="px-4 py-3 border-b border-zinc-100">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">Status</span>
           </div>
           <div className="p-3 space-y-1">
             {(["OPEN", "ASSIGNED", "COMPLETED", "CANCELLED"] as const).map(s => (
@@ -1303,7 +1311,7 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
                 className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all border ${
                   s === serverStatus
                     ? `${STATUS_STYLES[s]} cursor-default`
-                    : "border-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700"
+                    : "border-transparent text-zinc-600 hover:bg-zinc-50 hover:border-zinc-200"
                 } disabled:opacity-60`}>
                 <div className={`w-2 h-2 rounded-full shrink-0 ${
                   s === "OPEN" ? "bg-sky-500" : s === "ASSIGNED" ? "bg-emerald-500"
@@ -1327,15 +1335,15 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
         />
 
         {/* Audit note */}
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-          <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800">
-            <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Audit note</div>
+        <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
+          <div className="px-4 py-3 border-b border-zinc-100">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">Audit note</div>
             <p className="text-[11px] text-zinc-400 mt-0.5">Attached to your next action</p>
           </div>
           <div className="p-3">
             <textarea value={auditNote} onChange={e => setAuditNote(e.target.value)} rows={2}
               placeholder="Optional note…"
-              className="w-full bg-transparent text-sm text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 outline-none resize-none" />
+              className="w-full bg-transparent text-sm text-zinc-700 placeholder:text-zinc-400 outline-none resize-none" />
           </div>
         </div>
 

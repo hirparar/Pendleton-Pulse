@@ -2,8 +2,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/authz";
-import { MotionIn } from "@/components/motion";
+import { MotionIn, MotionStagger, MotionItem } from "@/components/motion";
 import { AssignmentsTable } from "./table";
+import { Plus, ListChecks, CheckCircle2, XCircle, Zap, Users, Clock } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -19,37 +21,57 @@ export default async function AdminAssignmentsPage() {
   });
 
   const counts = assignments.reduce((acc, a) => {
-    acc[a.status] = (acc[a.status] ?? 0) + 1; return acc;
+    acc[a.status] = (acc[a.status] ?? 0) + 1;
+    return acc;
   }, {} as Record<string, number>);
 
-  const upcoming = assignments.filter((a) => a.status === "OPEN" || a.status === "ASSIGNED").length;
-  const urgent   = assignments.filter((a) => a.isUrgent && (a.status === "OPEN" || a.status === "ASSIGNED")).length;
+  const upcoming = assignments.filter(
+    (a) => a.status === "OPEN" || a.status === "ASSIGNED"
+  ).length;
+  const urgent = assignments.filter(
+    (a) => a.isUrgent && (a.status === "OPEN" || a.status === "ASSIGNED")
+  ).length;
+
+  const kpis = [
+    { label: "Open", value: counts.OPEN ?? 0, icon: ListChecks, color: "text-sky-600", bg: "bg-sky-50", ring: "ring-sky-200/60", bar: "bg-sky-500" },
+    { label: "Assigned", value: counts.ASSIGNED ?? 0, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50", ring: "ring-emerald-200/60", bar: "bg-emerald-500" },
+    { label: "Completed", value: counts.COMPLETED ?? 0, icon: CheckCircle2, color: "text-zinc-500", bg: "bg-zinc-100", ring: "ring-zinc-200/60", bar: "bg-zinc-400" },
+    { label: "Cancelled", value: counts.CANCELLED ?? 0, icon: XCircle, color: "text-rose-600", bg: "bg-rose-50", ring: "ring-rose-200/60", bar: "bg-rose-500" },
+    { label: "Active", value: upcoming, icon: Clock, color: "text-amber-600", bg: "bg-amber-50", ring: "ring-amber-200/60", bar: "bg-amber-500" },
+    { label: "Urgent", value: urgent, icon: Zap, color: "text-red-600", bg: "bg-red-50", ring: "ring-red-200/60", bar: "bg-red-500" },
+  ];
 
   return (
     <MotionIn className="space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white">Assignments</h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">
+            Assignments
+          </h1>
+          <p className="mt-1 text-sm text-zinc-500">
             Create, staff, and manage interpreter assignments.
           </p>
         </div>
-        <Link href="/admin/assignments/new"
-          className="inline-flex h-10 items-center rounded-2xl bg-zinc-950 px-5 text-sm font-semibold text-white hover:bg-zinc-800 transition-colors dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100">
-          Create assignment
+        <Link
+          href="/admin/assignments/new"
+          className="inline-flex h-9 items-center gap-2 rounded-xl bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800"
+        >
+          <Plus className="size-4" />
+          New assignment
         </Link>
-      </header>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-        <Kpi label="Open"         value={counts.OPEN ?? 0}      color="sky" />
-        <Kpi label="Assigned"     value={counts.ASSIGNED ?? 0}  color="emerald" />
-        <Kpi label="Completed"    value={counts.COMPLETED ?? 0} color="zinc" />
-        <Kpi label="Cancelled"    value={counts.CANCELLED ?? 0} color="rose" />
-        <Kpi label="Active"       value={upcoming}              color="amber" />
-        <Kpi label="Urgent"       value={urgent}                color="red" />
       </div>
 
+      {/* KPIs */}
+      <MotionStagger className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {kpis.map((k) => (
+          <MotionItem key={k.label}>
+            <KpiCard {...k} />
+          </MotionItem>
+        ))}
+      </MotionStagger>
+
+      {/* Table */}
       <AssignmentsTable
         initial={assignments.map((a) => ({
           id: a.id,
@@ -79,22 +101,26 @@ export default async function AdminAssignmentsPage() {
   );
 }
 
-function Kpi({ label, value, color }: {
+function KpiCard({
+  label, value, icon: Icon, color, bg, ring, bar,
+}: {
   label: string; value: number;
-  color: "sky" | "emerald" | "zinc" | "rose" | "amber" | "red";
+  icon: React.ElementType; color: string; bg: string; ring: string; bar: string;
 }) {
-  const c = {
-    sky:     "text-sky-600 dark:text-sky-400",
-    emerald: "text-emerald-600 dark:text-emerald-400",
-    zinc:    "text-zinc-600 dark:text-zinc-400",
-    rose:    "text-rose-600 dark:text-rose-400",
-    amber:   "text-amber-600 dark:text-amber-400",
-    red:     "text-red-600 dark:text-red-400",
-  }[color];
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</div>
-      <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${c}`}>{value}</div>
+    <div className={cn("card-hover relative overflow-hidden rounded-xl border border-zinc-200/80 bg-white p-4")}>
+      <div className={cn("absolute inset-x-0 top-0 h-0.5 opacity-80", bar)} />
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-xs font-medium text-zinc-500">{label}</p>
+          <p className={cn("mt-1.5 text-2xl font-semibold tabular-nums tracking-tight", color)}>
+            {value}
+          </p>
+        </div>
+        <div className={cn("grid h-8 w-8 place-items-center rounded-lg ring-1", bg, ring)}>
+          <Icon className={cn("size-4", color)} />
+        </div>
+      </div>
     </div>
   );
 }

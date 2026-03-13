@@ -200,12 +200,12 @@ export default async function InterpreterJobDetailPage({ params }: Props) {
 
   return (
     <MotionIn className="space-y-6">
-      <nav className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
-        <Link href="/interpreter/jobs" className="hover:text-zinc-900 dark:hover:text-white transition-colors">
+      <nav className="flex items-center gap-2 text-sm text-zinc-500">
+        <Link href="/interpreter/jobs" className="hover:text-zinc-900 transition-colors">
           Job feed
         </Link>
         <span>/</span>
-        <span className="text-zinc-900 dark:text-white font-medium truncate max-w-xs">{job.title}</span>
+        <span className="text-zinc-900 font-medium truncate max-w-xs">{job.title}</span>
       </nav>
 
       <JobDetailClient job={job} />

@@ -6,19 +6,13 @@ import { motion, cubicBezier } from "framer-motion";
 import Link from "next/link";
 import { toast } from "sonner";
 import { formatDateISO, formatDateTimeISO } from "@/lib/datetime";
-
 import {
   approveInterpreterById,
   denyInterpreterById,
   setInterpreterActive,
   bulkSetInterpreterActive,
 } from "./actions";
-
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-
 import {
   Dialog,
   DialogContent,
@@ -26,6 +20,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Search, Loader2, ArrowUpRight, CheckCircle2, XCircle,
+  MapPin, Languages, Star, UserCheck, UserX, Users,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -38,7 +37,6 @@ type InterpreterProfile = {
   certifications: string[];
   experienceYears: number | null;
   preferredModes: string[];
-  // availabilityNote removed — field no longer exists in schema
   updatedAt: Date;
 };
 
@@ -61,12 +59,8 @@ const ease = cubicBezier(0.16, 1, 0.3, 1);
 
 function completeness(p: InterpreterProfile | null) {
   if (!p) return { score: 0, label: "No profile" };
-
   const fields = [
-    p.displayName,
-    p.phone,
-    p.location,
-    p.bio,
+    p.displayName, p.phone, p.location, p.bio,
     (p.languages?.length ?? 0) > 0 ? "x" : null,
     (p.certifications?.length ?? 0) > 0 ? "x" : null,
     p.experienceYears !== null ? "x" : null,
@@ -74,34 +68,62 @@ function completeness(p: InterpreterProfile | null) {
   ];
   const filled = fields.filter(Boolean).length;
   const pct = Math.round((filled / fields.length) * 100);
-  const label =
-    pct >= 85 ? "Strong" : pct >= 60 ? "Good" : pct >= 35 ? "Basic" : "Incomplete";
-
+  const label = pct >= 85 ? "Strong" : pct >= 60 ? "Good" : pct >= 35 ? "Basic" : "Incomplete";
   return { score: pct, label };
 }
 
-function StatusBadge({ status }: { status: Row["status"] }) {
-  const cls =
-    status === "APPROVED"
-      ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/25 dark:text-emerald-300"
-      : status === "PENDING"
-      ? "bg-amber-500/15 text-amber-800 border-amber-500/25 dark:text-amber-300"
-      : "bg-rose-500/15 text-rose-800 border-rose-500/25 dark:text-rose-300";
+function getInitials(name: string | null, email: string | null) {
+  const src = name ?? email ?? "?";
+  const parts = src.split(/[\s@.]+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return src.slice(0, 2).toUpperCase();
+}
 
+function Avatar({ name, email, size = "md" }: { name: string | null; email: string | null; size?: "sm" | "md" }) {
+  const initials = getInitials(name, email);
+  const colors = [
+    "bg-indigo-100 text-indigo-700",
+    "bg-violet-100 text-violet-700",
+    "bg-sky-100 text-sky-700",
+    "bg-emerald-100 text-emerald-700",
+    "bg-amber-100 text-amber-700",
+  ];
+  const src = name ?? email ?? "";
+  const colorIdx = src.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % colors.length;
   return (
-    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${cls}`}>
+    <div className={cn(
+      "flex shrink-0 items-center justify-center rounded-full font-semibold",
+      size === "sm" ? "size-8 text-[11px]" : "size-10 text-sm",
+      colors[colorIdx]
+    )}>
+      {initials}
+    </div>
+  );
+}
+
+// ─── status components ────────────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: Row["status"] }) {
+  const styles = {
+    APPROVED: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    PENDING: "border-amber-200 bg-amber-50 text-amber-700",
+    DENIED: "border-rose-200 bg-rose-50 text-rose-600",
+  };
+  return (
+    <span className={cn("rounded-full border px-2.5 py-0.5 text-[11px] font-semibold", styles[status])}>
       {status === "APPROVED" ? "Approved" : status === "PENDING" ? "Pending" : "Denied"}
     </span>
   );
 }
 
 function ActiveBadge({ isActive }: { isActive: boolean }) {
-  const cls = isActive
-    ? "bg-sky-500/15 text-sky-800 border-sky-500/25 dark:text-sky-300"
-    : "bg-zinc-500/15 text-zinc-800 border-zinc-500/25 dark:text-zinc-300";
-
   return (
-    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${cls}`}>
+    <span className={cn(
+      "rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
+      isActive
+        ? "border-sky-200 bg-sky-50 text-sky-700"
+        : "border-zinc-200 bg-zinc-50 text-zinc-500"
+    )}>
       {isActive ? "Active" : "Inactive"}
     </span>
   );
@@ -113,7 +135,6 @@ export function InterpretersTable({ initial }: { initial: Row[] }) {
   const [rows, setRows] = useState<Row[]>(initial);
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<"ALL" | "PENDING" | "APPROVED" | "DENIED">("ALL");
-
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const selectedIds = useMemo(
     () => Object.entries(selected).filter(([, v]) => v).map(([k]) => k),
@@ -146,16 +167,17 @@ export function InterpretersTable({ initial }: { initial: Row[] }) {
   }, [q, tab, rows]);
 
   const shownIds = useMemo(() => filtered.map((r) => r.id), [filtered]);
-
   const allShownSelected = useMemo(
     () => shownIds.length > 0 && shownIds.every((id) => selected[id]),
     [shownIds, selected]
   );
+  const anyShownSelected = useMemo(() => shownIds.some((id) => selected[id]), [shownIds, selected]);
 
-  const anyShownSelected = useMemo(
-    () => shownIds.some((id) => selected[id]),
-    [shownIds, selected]
-  );
+  const tabCounts = useMemo(() => {
+    const counts: Record<string, number> = { ALL: rows.length };
+    for (const r of rows) counts[r.status] = (counts[r.status] ?? 0) + 1;
+    return counts;
+  }, [rows]);
 
   function updateRow(id: string, patch: Partial<Row>) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -256,83 +278,117 @@ export function InterpretersTable({ initial }: { initial: Row[] }) {
     });
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Controls */}
-      <div className="rounded-3xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-1 items-center gap-3">
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search email, name, location…"
-              className="h-11 rounded-2xl bg-white dark:bg-zinc-900 max-w-sm"
-            />
-            <Badge variant="secondary" className="rounded-full">{filtered.length} shown</Badge>
-            {anyShownSelected && (
-              <Badge variant="secondary" className="rounded-full">{selectedIds.length} selected</Badge>
-            )}
-          </div>
+  const TABS = ["ALL", "PENDING", "APPROVED", "DENIED"] as const;
+  const TAB_LABELS: Record<typeof TABS[number], string> = {
+    ALL: "All", PENDING: "Pending", APPROVED: "Approved", DENIED: "Denied",
+  };
 
-          <div className="flex flex-wrap gap-2">
-            {(["ALL", "PENDING", "APPROVED", "DENIED"] as const).map((t) => (
-              <Chip key={t} active={tab === t} onClick={() => setTab(t)}>
-                {t === "ALL" ? "All" : t.charAt(0) + t.slice(1).toLowerCase()}
-              </Chip>
-            ))}
-          </div>
+  return (
+    <div className="space-y-3">
+      {/* Controls */}
+      <div className="space-y-3 rounded-xl border border-zinc-200/80 bg-white p-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search name, email, location…"
+            className="h-9 rounded-lg pl-9 text-sm"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {TABS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={cn(
+                "h-8 rounded-lg px-3 text-xs font-medium transition-all",
+                tab === t
+                  ? "bg-zinc-950 text-white shadow-sm"
+                  : "border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+              )}
+            >
+              {TAB_LABELS[t]}
+              <span className={cn("ml-1.5 tabular-nums", tab === t ? "opacity-70" : "text-zinc-400")}>
+                {tabCounts[t] ?? 0}
+              </span>
+            </button>
+          ))}
+          {anyShownSelected && (
+            <>
+              <div className="h-5 w-px bg-zinc-200 mx-1" />
+              <span className="text-xs text-zinc-500 tabular-nums">{selectedIds.length} selected</span>
+            </>
+          )}
         </div>
       </div>
 
       {/* Bulk action bar */}
       {selectedIds.length > 0 && (
-        <div className="rounded-3xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="text-sm font-semibold text-zinc-950 dark:text-white">Bulk actions</div>
-              <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                {selectedIds.length} selected
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Optional audit note…"
-                className="h-11 rounded-2xl border border-zinc-200 bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-zinc-800 dark:bg-zinc-950 w-64"
-              />
-              <Button className="h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-600/90" disabled={isPending} onClick={() => openBulkToggleConfirm(true)}>Activate</Button>
-              <Button className="h-11 rounded-2xl bg-rose-600 hover:bg-rose-600/90" disabled={isPending} onClick={() => openBulkToggleConfirm(false)}>Deactivate</Button>
-              <Button variant="secondary" className="h-11 rounded-2xl" onClick={() => setSelected({})}>Clear</Button>
-            </div>
-          </div>
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-200/80 bg-white p-3">
+          <span className="text-xs font-semibold text-zinc-700">
+            Bulk actions ({selectedIds.length})
+          </span>
+          <div className="h-4 w-px bg-zinc-200" />
+          <input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Optional audit note…"
+            className="h-8 flex-1 min-w-40 rounded-lg border border-zinc-200 bg-white px-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-zinc-300"
+          />
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => openBulkToggleConfirm(true)}
+            className="flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {isPending ? <Loader2 className="size-3 animate-spin" /> : <UserCheck className="size-3" />}
+            Activate
+          </button>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => openBulkToggleConfirm(false)}
+            className="flex h-8 items-center gap-1.5 rounded-lg bg-rose-600 px-3 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:opacity-50"
+          >
+            {isPending ? <Loader2 className="size-3 animate-spin" /> : <UserX className="size-3" />}
+            Deactivate
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelected({})}
+            className="h-8 rounded-lg border border-zinc-200 px-3 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50"
+          >
+            Clear
+          </button>
         </div>
       )}
 
       {/* Table */}
-      <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex items-center justify-between px-4 py-3">
+      <div className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white">
+        <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-4 py-3">
           <div>
-            <div className="text-sm font-semibold tracking-tight text-zinc-950 dark:text-white">
-              Interpreter directory
-            </div>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400">
-              Select rows for bulk actions. Click a row to review.
-            </div>
+            <p className="text-sm font-semibold text-zinc-950">Interpreter directory</p>
+            <p className="text-xs text-zinc-500">Click a row to review details and actions.</p>
           </div>
-          {isPending && <span className="text-xs text-zinc-400">Saving…</span>}
+          {isPending && (
+            <span className="flex items-center gap-1.5 text-xs text-zinc-400">
+              <Loader2 className="size-3 animate-spin" />
+              Saving…
+            </span>
+          )}
         </div>
 
-        <Separator className="opacity-60" />
-
-        <div className="max-h-[620px] overflow-auto">
+        <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 z-10 bg-white/90 backdrop-blur dark:bg-zinc-900/90">
-              <tr className="text-left text-xs text-zinc-500 dark:text-zinc-400">
+            <thead>
+              <tr className="border-b border-zinc-100 text-left">
                 <th className="px-4 py-3">
                   <input
                     type="checkbox"
                     checked={allShownSelected}
+                    className="accent-primary h-3.5 w-3.5 rounded"
                     onChange={(e) => {
                       const next: Record<string, boolean> = { ...selected };
                       for (const id of shownIds) {
@@ -343,81 +399,159 @@ export function InterpretersTable({ initial }: { initial: Row[] }) {
                     }}
                   />
                 </th>
-                <th className="px-4 py-3">Interpreter</th>
-                <th className="px-4 py-3">Profile</th>
-                <th className="px-4 py-3">Created</th>
-                <th className="px-4 py-3 text-right">Access</th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                  Interpreter
+                </th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                  Profile
+                </th>
+                <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                  Joined
+                </th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                  Status
+                </th>
               </tr>
             </thead>
-
-            <tbody>
+            <tbody className="divide-y divide-zinc-100">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-14 text-center text-sm text-zinc-400">
-                    No interpreters match your filters.
+                  <td colSpan={5} className="py-16">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="grid h-10 w-10 place-items-center rounded-xl border border-zinc-200 bg-zinc-50">
+                        <Users className="size-4 text-zinc-400" />
+                      </div>
+                      <p className="text-sm font-medium text-zinc-900">No interpreters match</p>
+                      <p className="text-xs text-zinc-500">Try a different filter or search term.</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 filtered.map((r, idx) => {
                   const comp = completeness(r.interpreterProfile);
+                  const compColor = comp.score >= 85 ? "bg-emerald-500" : comp.score >= 60 ? "bg-sky-500" : comp.score >= 35 ? "bg-amber-500" : "bg-zinc-300";
                   return (
                     <motion.tr
                       key={r.id}
-                      initial={{ opacity: 0, y: 8 }}
+                      initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.35, ease, delay: Math.min(idx * 0.01, 0.12) }}
-                      className="group border-t border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/30 cursor-pointer"
+                      transition={{ duration: 0.3, ease, delay: Math.min(idx * 0.01, 0.1) }}
+                      className="group cursor-pointer transition-colors hover:bg-zinc-50/70"
                       onClick={() => openReview(r)}
                     >
                       <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={Boolean(selected[r.id])}
-                          onChange={(e) => setSelected((prev) => ({ ...prev, [r.id]: e.target.checked }))}
+                          className="accent-primary h-3.5 w-3.5 rounded"
+                          onChange={(e) =>
+                            setSelected((prev) => ({ ...prev, [r.id]: e.target.checked }))
+                          }
                         />
                       </td>
 
                       <td className="px-4 py-4">
-                        <div className="font-medium text-zinc-950 dark:text-white">
-                          {r.interpreterProfile?.displayName ?? r.email ?? "Unknown"}
+                        <div className="flex items-center gap-3">
+                          <Avatar name={r.interpreterProfile?.displayName ?? null} email={r.email} size="sm" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-zinc-950">
+                              {r.interpreterProfile?.displayName ?? r.email ?? "Unknown"}
+                            </p>
+                            <p className="truncate text-xs text-zinc-500">{r.email ?? "No email"}</p>
+                            {r.interpreterProfile?.location && (
+                              <p className="mt-0.5 flex items-center gap-1 text-[11px] text-zinc-400">
+                                <MapPin className="size-2.5" />
+                                {r.interpreterProfile.location}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                          {r.email ?? "No email"} · {r.interpreterProfile?.location ?? "No location"}
-                        </div>
-                        <div className="mt-2 hidden items-center gap-2 opacity-0 transition-opacity group-hover:flex group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
-                          <Button size="sm" className={`h-8 rounded-xl text-xs ${!r.isActive ? "bg-emerald-600 hover:bg-emerald-600/90" : "bg-rose-600 hover:bg-rose-600/90"}`} disabled={isPending} onClick={() => openSingleToggleConfirm(r, !r.isActive)}>
+                        {/* Hover actions */}
+                        <div
+                          className="mt-2 hidden items-center gap-2 opacity-0 transition-opacity group-hover:flex group-hover:opacity-100"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            disabled={isPending}
+                            onClick={() => openSingleToggleConfirm(r, !r.isActive)}
+                            className={cn(
+                              "flex h-7 items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold transition disabled:opacity-50",
+                              r.isActive
+                                ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                                : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                            )}
+                          >
+                            {isPending ? <Loader2 className="size-3 animate-spin" /> : null}
                             {r.isActive ? "Deactivate" : "Activate"}
-                          </Button>
+                          </button>
                           {r.status === "PENDING" ? (
                             <>
-                              <Button size="sm" className="h-8 rounded-xl text-xs bg-emerald-600 hover:bg-emerald-600/90" disabled={isPending} onClick={() => doApprove(r.id)}>Approve</Button>
-                              <Button size="sm" className="h-8 rounded-xl text-xs bg-rose-600 hover:bg-rose-600/90" disabled={isPending} onClick={() => doDeny(r.id)}>Deny</Button>
+                              <button
+                                type="button"
+                                disabled={isPending}
+                                onClick={() => doApprove(r.id)}
+                                className="flex h-7 items-center gap-1 rounded-lg bg-emerald-50 px-2.5 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50"
+                              >
+                                <CheckCircle2 className="size-3" />
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isPending}
+                                onClick={() => doDeny(r.id)}
+                                className="flex h-7 items-center gap-1 rounded-lg bg-rose-50 px-2.5 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50"
+                              >
+                                <XCircle className="size-3" />
+                                Deny
+                              </button>
                             </>
                           ) : (
-                            <Link href={`/admin/interpreters/${r.id}`} className="inline-flex h-8 items-center rounded-xl border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-900 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white" onClick={(e) => e.stopPropagation()}>
+                            <Link
+                              href={`/admin/interpreters/${r.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex h-7 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 text-[11px] font-medium text-zinc-700 transition hover:bg-zinc-50"
+                            >
                               View
+                              <ArrowUpRight className="size-3 opacity-60" />
                             </Link>
                           )}
                         </div>
                       </td>
 
                       <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-1.5 w-24 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-                            <div className="h-full bg-zinc-900 dark:bg-white" style={{ width: `${comp.score}%` }} />
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-20 overflow-hidden rounded-full bg-zinc-100">
+                              <div className={cn("h-full transition-all", compColor)} style={{ width: `${comp.score}%` }} />
+                            </div>
+                            <span className="text-[11px] text-zinc-500">{comp.label}</span>
                           </div>
-                          <span className="text-xs text-zinc-500 dark:text-zinc-400">{comp.label}</span>
+                          {(r.interpreterProfile?.languages ?? []).length > 0 && (
+                            <p className="flex items-center gap-1 text-[11px] text-zinc-400">
+                              <Languages className="size-2.5" />
+                              {r.interpreterProfile!.languages.slice(0, 2).join(", ")}
+                              {r.interpreterProfile!.languages.length > 2 && ` +${r.interpreterProfile!.languages.length - 2}`}
+                            </p>
+                          )}
+                          {(r.interpreterProfile?.certifications ?? []).length > 0 && (
+                            <p className="flex items-center gap-1 text-[11px] text-zinc-400">
+                              <Star className="size-2.5" />
+                              {r.interpreterProfile!.certifications.slice(0, 2).join(", ")}
+                            </p>
+                          )}
                         </div>
                       </td>
 
-                      <td className="px-4 py-4 text-xs text-zinc-600 dark:text-zinc-400">
+                      <td className="px-4 py-4 text-xs text-zinc-500">
                         {formatDateISO(r.createdAt)}
                       </td>
 
                       <td className="px-4 py-4 text-right">
-                        <div className="inline-flex items-center gap-2">
+                        <div className="inline-flex items-center gap-1.5">
                           <ActiveBadge isActive={r.isActive} />
                           <StatusBadge status={r.status} />
+                          <ArrowUpRight className="size-3.5 text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100" />
                         </div>
                       </td>
                     </motion.tr>
@@ -427,65 +561,119 @@ export function InterpretersTable({ initial }: { initial: Row[] }) {
             </tbody>
           </table>
         </div>
+
+        {filtered.length > 0 && (
+          <div className="border-t border-zinc-100 bg-zinc-50/50 px-4 py-2.5">
+            <p className="text-xs text-zinc-400">
+              Showing <span className="font-medium text-zinc-600">{filtered.length}</span> of {rows.length} interpreters
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Review dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="rounded-3xl">
+        <DialogContent className="max-w-md rounded-xl">
           <DialogHeader>
-            <DialogTitle className="tracking-tight">Interpreter profile</DialogTitle>
-            <DialogDescription>Review status and access. Full editing is in the details view.</DialogDescription>
+            <DialogTitle className="tracking-tight">Interpreter review</DialogTitle>
+            <DialogDescription>Quick actions and profile snapshot.</DialogDescription>
           </DialogHeader>
 
           {activeRow && (
             <div className="space-y-4">
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm dark:border-zinc-800 dark:bg-zinc-950">
-                <div className="font-medium text-zinc-950 dark:text-white">
-                  {activeRow.interpreterProfile?.displayName ?? activeRow.email ?? "Unknown"}
+              <div className="flex items-center gap-3 rounded-xl border border-zinc-100 bg-zinc-50 p-4">
+                <Avatar name={activeRow.interpreterProfile?.displayName ?? null} email={activeRow.email} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-zinc-950">
+                    {activeRow.interpreterProfile?.displayName ?? activeRow.email ?? "Unknown"}
+                  </p>
+                  <p className="truncate text-xs text-zinc-500">{activeRow.email ?? "—"}</p>
+                  {activeRow.interpreterProfile?.location && (
+                    <p className="mt-0.5 flex items-center gap-1 text-[11px] text-zinc-400">
+                      <MapPin className="size-2.5" />
+                      {activeRow.interpreterProfile.location}
+                    </p>
+                  )}
                 </div>
-                <div className="text-xs text-zinc-500 mt-1">{activeRow.email ?? "—"} · {activeRow.interpreterProfile?.location ?? "—"}</div>
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ActiveBadge isActive={activeRow.isActive} />
-                    <StatusBadge status={activeRow.status} />
-                  </div>
-                  <span className="text-xs text-zinc-400">{formatDateTimeISO(activeRow.createdAt)}</span>
+                <div className="flex flex-col items-end gap-1">
+                  <ActiveBadge isActive={activeRow.isActive} />
+                  <StatusBadge status={activeRow.status} />
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Mini label="Languages" value={(activeRow.interpreterProfile?.languages ?? []).join(", ") || "—"} />
-                <Mini label="Certifications" value={(activeRow.interpreterProfile?.certifications ?? []).join(", ") || "—"} />
-                <Mini label="Experience" value={activeRow.interpreterProfile?.experienceYears?.toString() ?? "—"} />
-                <Mini label="Preferred modes" value={(activeRow.interpreterProfile?.preferredModes ?? []).join(", ") || "—"} />
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: "Languages", value: (activeRow.interpreterProfile?.languages ?? []).join(", ") || "—" },
+                  { label: "Certifications", value: (activeRow.interpreterProfile?.certifications ?? []).join(", ") || "—" },
+                  { label: "Experience", value: activeRow.interpreterProfile?.experienceYears !== null && activeRow.interpreterProfile?.experienceYears !== undefined ? `${activeRow.interpreterProfile.experienceYears} yrs` : "—" },
+                  { label: "Joined", value: formatDateTimeISO(activeRow.createdAt) },
+                ].map(({ label, value }) => (
+                  <div key={label} className="rounded-lg border border-zinc-100 bg-white p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">{label}</p>
+                    <p className="mt-0.5 text-xs font-medium text-zinc-800">{value}</p>
+                  </div>
+                ))}
               </div>
 
               <div>
-                <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">Admin note</div>
+                <label className="mb-1.5 block text-xs font-medium text-zinc-600">Admin note (optional)</label>
                 <input
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="Optional note for audit…"
-                  className="h-11 w-full rounded-2xl border border-zinc-200 bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-zinc-800 dark:bg-zinc-900"
+                  placeholder="For audit log…"
+                  className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-zinc-300"
                 />
               </div>
 
-              <div className="flex flex-wrap gap-2 justify-end">
-                <Button variant="secondary" className="h-11 rounded-2xl" onClick={() => setOpen(false)}>Close</Button>
-                <Link href={`/admin/interpreters/${activeRow.id}`} className="inline-flex h-11 items-center justify-center rounded-2xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-900 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="h-8 rounded-lg border border-zinc-200 px-3 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50"
+                >
+                  Close
+                </button>
+                <Link
+                  href={`/admin/interpreters/${activeRow.id}`}
+                  className="flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
+                >
                   Full details
+                  <ArrowUpRight className="size-3 opacity-60" />
                 </Link>
-                <Button
-                  className={`h-11 rounded-2xl ${activeRow.isActive ? "bg-rose-600 hover:bg-rose-600/90" : "bg-emerald-600 hover:bg-emerald-600/90"}`}
+                <button
+                  type="button"
                   disabled={isPending}
                   onClick={() => openSingleToggleConfirm(activeRow, !activeRow.isActive)}
+                  className={cn(
+                    "flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition disabled:opacity-50",
+                    activeRow.isActive
+                      ? "bg-rose-600 text-white hover:bg-rose-700"
+                      : "bg-emerald-600 text-white hover:bg-emerald-700"
+                  )}
                 >
+                  {isPending ? <Loader2 className="size-3 animate-spin" /> : null}
                   {activeRow.isActive ? "Deactivate" : "Activate"}
-                </Button>
+                </button>
                 {activeRow.status === "PENDING" && (
                   <>
-                    <Button className="h-11 rounded-2xl bg-rose-600 hover:bg-rose-600/90" disabled={isPending} onClick={() => doDeny(activeRow.id, note)}>Deny</Button>
-                    <Button className="h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-600/90" disabled={isPending} onClick={() => doApprove(activeRow.id, note)}>Approve</Button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => doDeny(activeRow.id, note)}
+                      className="flex h-8 items-center gap-1.5 rounded-lg bg-rose-600 px-3 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:opacity-50"
+                    >
+                      {isPending ? <Loader2 className="size-3 animate-spin" /> : <XCircle className="size-3" />}
+                      Deny
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => doApprove(activeRow.id, note)}
+                      className="flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      {isPending ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
+                      Approve
+                    </button>
                   </>
                 )}
               </div>
@@ -496,7 +684,7 @@ export function InterpretersTable({ initial }: { initial: Row[] }) {
 
       {/* Confirm single toggle */}
       <Dialog open={confirmSingleOpen} onOpenChange={setConfirmSingleOpen}>
-        <DialogContent className="rounded-3xl">
+        <DialogContent className="max-w-sm rounded-xl">
           <DialogHeader>
             <DialogTitle>{pendingNextActive ? "Activate interpreter?" : "Deactivate interpreter?"}</DialogTitle>
             <DialogDescription>
@@ -505,54 +693,64 @@ export function InterpretersTable({ initial }: { initial: Row[] }) {
                 : "Deactivating blocks interpreter pages and protected APIs immediately."}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex gap-2 justify-end">
-            <Button variant="secondary" className="h-11 rounded-2xl" disabled={isPending} onClick={() => setConfirmSingleOpen(false)}>Cancel</Button>
-            <Button className={`h-11 rounded-2xl ${pendingNextActive ? "bg-emerald-600 hover:bg-emerald-600/90" : "bg-rose-600 hover:bg-rose-600/90"}`} disabled={isPending} onClick={doSingleToggle}>Confirm</Button>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => setConfirmSingleOpen(false)}
+              className="h-9 rounded-lg border border-zinc-200 px-4 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={doSingleToggle}
+              className={cn(
+                "flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white transition disabled:opacity-50",
+                pendingNextActive ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"
+              )}
+            >
+              {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+              Confirm
+            </button>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Confirm bulk toggle */}
       <Dialog open={confirmBulkOpen} onOpenChange={setConfirmBulkOpen}>
-        <DialogContent className="rounded-3xl">
+        <DialogContent className="max-w-sm rounded-xl">
           <DialogHeader>
             <DialogTitle>{bulkNextActive ? "Activate selected?" : "Deactivate selected?"}</DialogTitle>
             <DialogDescription>
               Updates eligibility for {selectedIds.length} interpreter{selectedIds.length !== 1 ? "s" : ""}.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex gap-2 justify-end">
-            <Button variant="secondary" className="h-11 rounded-2xl" disabled={isPending} onClick={() => setConfirmBulkOpen(false)}>Cancel</Button>
-            <Button className={`h-11 rounded-2xl ${bulkNextActive ? "bg-emerald-600 hover:bg-emerald-600/90" : "bg-rose-600 hover:bg-rose-600/90"}`} disabled={isPending} onClick={doBulkToggle}>Confirm</Button>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => setConfirmBulkOpen(false)}
+              className="h-9 rounded-lg border border-zinc-200 px-4 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={doBulkToggle}
+              className={cn(
+                "flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white transition disabled:opacity-50",
+                bulkNextActive ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"
+              )}
+            >
+              {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+              Confirm
+            </button>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function Chip({ active, children, onClick }: { active?: boolean; children: React.ReactNode; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        "h-10 rounded-full px-4 text-sm font-medium transition-colors",
-        active
-          ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
-          : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200",
-      ].join(" ")}
-    >
-      {children}
-    </button>
-  );
-}
-
-function Mini({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="text-xs text-zinc-500 dark:text-zinc-400">{label}</div>
-      <div className="mt-1 text-sm font-medium text-zinc-950 dark:text-white">{value}</div>
     </div>
   );
 }

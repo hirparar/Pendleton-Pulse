@@ -1,44 +1,51 @@
 import Link from "next/link";
+import { Briefcase, Clock, XCircle, User, Calendar, ArrowRight } from "lucide-react";
 
 export function JobFeedEmpty({ status }: { status: "PENDING" | "APPROVED" | "DENIED" }) {
   const pending = status === "PENDING";
   const denied = status === "DENIED";
 
-  return (
-    <section className="rounded-3xl border border-zinc-200 bg-white p-10 text-center dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="mx-auto mb-4 h-12 w-12 rounded-3xl bg-zinc-100 ring-1 ring-zinc-200 dark:bg-zinc-800 dark:ring-zinc-700" />
-      <h2 className="text-lg font-semibold tracking-tight">
-        {denied ? "Access required" : "No jobs available yet"}
-      </h2>
+  const Icon = denied ? XCircle : pending ? Clock : Briefcase;
+  const iconColor = denied ? "text-rose-500" : pending ? "text-amber-500" : "text-zinc-400";
+  const iconBg = denied ? "bg-rose-50 ring-rose-200/60" : pending ? "bg-amber-50 ring-amber-200/60" : "bg-zinc-50 ring-zinc-200/60";
 
-      <p className="mx-auto mt-2 max-w-md text-sm text-zinc-600 dark:text-zinc-300">
+  return (
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 py-16">
+      <div className={`grid h-14 w-14 place-items-center rounded-2xl ring-1 ${iconBg}`}>
+        <Icon className={`size-6 ${iconColor}`} />
+      </div>
+      <h2 className="mt-4 text-base font-semibold tracking-tight text-zinc-950">
+        {denied ? "Access required" : pending ? "Awaiting approval" : "No jobs available yet"}
+      </h2>
+      <p className="mx-auto mt-1.5 max-w-sm text-center text-sm text-zinc-500">
         {denied
           ? "Your interpreter access is currently denied. Contact your admin if you believe this is incorrect."
           : pending
           ? "Once your account is approved, jobs posted by admins will appear here instantly."
-          : "Admins haven’t posted any jobs yet. When they do, you’ll see them here with details and actions."}
+          : "Admins haven't posted any jobs yet. When they do, you'll see them here with all details."}
       </p>
-
-      <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
+      <div className="mt-6 flex flex-col items-center gap-2 sm:flex-row">
         <Link
           href="/interpreter/profile"
-          className="inline-flex h-11 items-center justify-center rounded-2xl bg-zinc-950 px-5 text-sm font-medium text-white hover:bg-zinc-900 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100"
+          className="flex h-9 items-center gap-2 rounded-lg bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800"
         >
+          <User className="size-4" />
           Complete profile
         </Link>
         <Link
           href="/interpreter/availability"
-          className="inline-flex h-11 items-center justify-center rounded-2xl border border-zinc-200 bg-white px-5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800/60"
+          className="flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
         >
+          <Calendar className="size-4" />
           Set availability
+          <ArrowRight className="size-3.5 opacity-60" />
         </Link>
       </div>
-
-      {pending ? (
-        <div className="mt-6 text-xs text-zinc-500 dark:text-zinc-400">
-          Tip: You can refresh approval status from the pending page.
-        </div>
-      ) : null}
-    </section>
+      {pending && (
+        <p className="mt-4 text-xs text-zinc-400">
+          You can refresh your approval status from the pending page.
+        </p>
+      )}
+    </div>
   );
 }

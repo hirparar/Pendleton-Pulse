@@ -11,7 +11,7 @@ export function JobFeedToolbar({ disabled }: { disabled?: boolean }) {
       <div className="flex flex-1 items-center gap-2">
         <Input
           placeholder="Search jobs (language, location, type)…"
-          className="h-11 rounded-2xl bg-white dark:bg-zinc-900"
+          className="h-11 rounded-2xl bg-white"
           disabled={disabled}
         />
         {disabled ? (

@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { LogoMark } from "@/components/brand";
-import { Separator } from "@/components/ui/separator";
+import { NavLinks } from "@/components/nav-links";
 
 type NavItem = { href: string; label: string; badge?: string };
 
@@ -24,73 +23,79 @@ export function AppShell({
   const isAdmin = accent === "admin";
 
   return (
-    <div className={cn("min-h-screen", "bg-zinc-50 text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50")}>
+    <div className="min-h-screen bg-zinc-50 text-zinc-950">
       <div className="mx-auto flex min-h-screen max-w-7xl">
         {/* Sidebar */}
         <aside
           className={cn(
-            "hidden w-72 flex-col border-r px-4 py-6 lg:flex",
-            "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+            "hidden w-60 shrink-0 flex-col border-r lg:flex",
+            "border-zinc-200/80 bg-white"
           )}
         >
-          <div className="flex items-center gap-3 px-2">
-            {!isAdmin ? <LogoMark /> : <div className="h-9 w-9 rounded-2xl bg-zinc-950 dark:bg-white" />}
-            <div className="leading-tight">
-              <div className="text-sm font-semibold tracking-tight">Pendleton Connect</div>
-              <div className="text-xs text-zinc-500 dark:text-zinc-400">
+          {/* Logo area */}
+          <div className="flex h-16 items-center gap-3 border-b border-zinc-200/80 px-5">
+            {!isAdmin ? (
+              <LogoMark className="shrink-0" />
+            ) : (
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-zinc-950 shadow-sm">
+                <span className="text-[10px] font-bold tracking-widest text-white">
+                  ADM
+                </span>
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold tracking-tight text-zinc-950">
+                Pendleton Pulse
+              </div>
+              <div className="truncate text-[11px] text-zinc-500">
                 {isAdmin ? "Admin Console" : "Interpreter Workspace"}
               </div>
             </div>
           </div>
 
-          <Separator className="my-5 opacity-70" />
+          {/* Navigation */}
+          <div className="flex-1 overflow-y-auto py-3">
+            <NavLinks nav={nav} />
+          </div>
 
-          <nav className="space-y-1 px-1">
-            {nav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "group flex items-center justify-between rounded-2xl px-3 py-2.5 text-sm",
-                  "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100",
-                  "dark:text-zinc-300 dark:hover:text-white dark:hover:bg-zinc-800/60",
-                  "transition-colors"
-                )}
-              >
-                <span className="font-medium tracking-tight">{item.label}</span>
-                {item.badge ? (
-                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                    {item.badge}
-                  </span>
-                ) : (
-                  <span className="text-xs opacity-0 transition-opacity group-hover:opacity-100">↗</span>
-                )}
-              </Link>
-            ))}
-          </nav>
+          {/* Sidebar footer */}
+          <div className="border-t border-zinc-200/80 px-4 py-4">
+            <div className="rounded-xl bg-zinc-50 px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+                Platform
+              </p>
+              <p className="mt-0.5 text-xs text-zinc-500">
+                Pendleton Pulse v0.1
+              </p>
+            </div>
+          </div>
         </aside>
 
-        {/* Main */}
-        <div className="flex-1">
+        {/* Content area */}
+        <div className="flex min-w-0 flex-1 flex-col">
           {/* Topbar */}
           <header
             className={cn(
               "sticky top-0 z-30 border-b",
-              "border-zinc-200 bg-white/85 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/70"
+              "border-zinc-200/80 bg-white/80 backdrop-blur-xl"
             )}
           >
-            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 lg:px-8">
-              <div className="space-y-0.5">
-                <div className="text-sm font-semibold tracking-tight">{title}</div>
+            <div className="flex h-16 items-center justify-between px-6">
+              <div className="min-w-0 space-y-0.5">
+                <p className="truncate text-sm font-semibold tracking-tight text-zinc-950">
+                  {title}
+                </p>
                 {subtitle ? (
-                  <div className="text-[11px] text-zinc-500 dark:text-zinc-400">{subtitle}</div>
+                  <p className="max-w-md truncate text-[11px] text-zinc-500">
+                    {subtitle}
+                  </p>
                 ) : null}
               </div>
-              <div className="flex items-center gap-2">{right}</div>
+              <div className="flex shrink-0 items-center gap-2">{right}</div>
             </div>
           </header>
 
-          <main className="mx-auto max-w-7xl px-4 py-8 lg:px-8">{children}</main>
+          <main className="flex-1 px-6 py-8">{children}</main>
         </div>
       </div>
     </div>

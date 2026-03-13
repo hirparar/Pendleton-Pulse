@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python skills/ui-ux-pro-max/scripts/search.py \"SaaS workforce management scheduling platform interpreter admin\" --design-system -p \"Pendleton Connect\" 2>&1 | head -100)"
+    ]
+  }
+}
