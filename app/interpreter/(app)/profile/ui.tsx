@@ -49,8 +49,6 @@ const TIMEZONES = [
 const MODE_OPTIONS = [
   { value: "IN_PERSON",    label: "In-person",         description: "On-site assignments" },
   { value: "REMOTE",       label: "Phone / Remote",     description: "Over-the-phone interpreting" },
-  { value: "VIDEO_RELAY",  label: "Video relay (VRS)",  description: "Video relay service" },
-  { value: "VIDEO_REMOTE", label: "Video remote (VRI)", description: "Video remote interpreting" },
 ] as const;
 
 const TZ_LABELS: Record<string, string> = {

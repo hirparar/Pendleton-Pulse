@@ -27,11 +27,9 @@ type Row = {
 const DELIVERY_ICON: Record<string, React.ElementType> = {
   IN_PERSON: Building2,
   REMOTE: Phone,
-  VIDEO_RELAY: Tv2,
-  VIDEO_REMOTE: Monitor,
 };
 const DELIVERY_LABEL: Record<string, string> = {
-  IN_PERSON: "In-person", REMOTE: "Remote", VIDEO_RELAY: "VRS", VIDEO_REMOTE: "VRI",
+  IN_PERSON: "In-person", REMOTE: "Remote",
 };
 
 const STATUS_STYLE: Record<Status, string> = {

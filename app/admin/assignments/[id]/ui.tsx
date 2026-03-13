@@ -14,15 +14,13 @@ import { Loader2, Pencil as PencilIcon, CheckCircle2, UserPlus, X, Search } from
 // ─── Constants & types ────────────────────────────────────────────────────────
 
 type Status = "OPEN" | "ASSIGNED" | "COMPLETED" | "CANCELLED";
-type DeliveryMode = "IN_PERSON" | "REMOTE" | "VIDEO_RELAY" | "VIDEO_REMOTE";
+type DeliveryMode = "IN_PERSON" | "REMOTE";
 
 const DELIVERY_LABELS: Record<string, string> = {
   IN_PERSON: "In-person",
   REMOTE: "Remote (phone)",
-  VIDEO_RELAY: "Video relay (VRS)",
-  VIDEO_REMOTE: "Video remote (VRI)",
 };
-const DELIVERY_MODES = ["IN_PERSON", "REMOTE", "VIDEO_RELAY", "VIDEO_REMOTE"] as const;
+const DELIVERY_MODES = ["IN_PERSON", "REMOTE"] as const;
 
 const ASSIGNMENT_TYPES = [
   "Medical", "Legal / Court", "Mental health", "Educational",
@@ -976,7 +974,7 @@ export function AssignmentCommandPanel({ assignment, eligibleInterpreters, audit
   const activeAssigned = useMemo(() => links.filter(l => l.status === "ASSIGNED"), [links]);
   const assignedCount = activeAssigned.length;
   const isClosed = serverStatus === "COMPLETED" || serverStatus === "CANCELLED";
-  const isRemote = ["REMOTE", "VIDEO_RELAY", "VIDEO_REMOTE"].includes(data.deliveryMode);
+  const isRemote = ["REMOTE"].includes(data.deliveryMode);
 
   // Generic patch — optimistically updates local data, then calls server
   function patch(fields: Record<string, unknown>): Promise<void> {

@@ -38,8 +38,6 @@ enum InterpreterLinkStatus {
 enum DeliveryMode {
   IN_PERSON
   REMOTE
-  VIDEO_RELAY
-  VIDEO_REMOTE
 }
 
 model UserProfile {

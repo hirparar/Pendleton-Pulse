@@ -35,11 +35,10 @@ type Job = {
 };
 
 const DELIVERY_ICON: Record<string, React.ElementType> = {
-  IN_PERSON: Building2, REMOTE: Phone, VIDEO_RELAY: Tv2, VIDEO_REMOTE: Monitor,
+  IN_PERSON: Building2, REMOTE: Phone
 };
 const DELIVERY_LABEL: Record<string, string> = {
   IN_PERSON: "In-person", REMOTE: "Remote (phone)",
-  VIDEO_RELAY: "Video relay (VRS)", VIDEO_REMOTE: "Video remote (VRI)",
 };
 
 function dur(start: string, end: string) {
@@ -191,7 +190,7 @@ export function JobDetailClient({ job }: { job: Job }) {
   const isAssigned = myStatus === "ASSIGNED";
   const isOpen = job.status === "OPEN" || job.status === "ASSIGNED";
   const canPick = isOpen && !isFull && !isAssigned && job.eligibilityIssues.length === 0 && job.hasAvailability;
-  const isRemote = ["REMOTE", "VIDEO_RELAY", "VIDEO_REMOTE"].includes(job.deliveryMode);
+  const isRemote = ["REMOTE"].includes(job.deliveryMode);
   const DelivIcon = DELIVERY_ICON[job.deliveryMode] ?? Building2;
 
   function handlePick() {

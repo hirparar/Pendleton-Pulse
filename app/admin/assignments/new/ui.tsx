@@ -14,8 +14,6 @@ import {
 const DELIVERY_MODES = [
   { value: "IN_PERSON",    label: "In-person",         desc: "On-site at client location",    icon: Building2 },
   { value: "REMOTE",       label: "Phone / Remote",     desc: "Over-the-phone interpreting",   icon: Phone },
-  { value: "VIDEO_RELAY",  label: "Video relay (VRS)",  desc: "Video relay service",           icon: Tv2 },
-  { value: "VIDEO_REMOTE", label: "Video remote (VRI)", desc: "Video remote interpreting",     icon: Monitor },
 ] as const;
 
 const ASSIGNMENT_TYPES = [
@@ -118,7 +116,7 @@ export function CreateAssignmentForm() {
   const [languagePair,      setLanguagePair]      = useState("");
   const [assignmentType,    setAssignmentType]    = useState("");
   const [customType,        setCustomType]        = useState("");
-  const [deliveryMode,      setDeliveryMode]      = useState<"IN_PERSON"|"REMOTE"|"VIDEO_RELAY"|"VIDEO_REMOTE">("IN_PERSON");
+  const [deliveryMode,      setDeliveryMode]      = useState<"IN_PERSON"|"REMOTE">("IN_PERSON");
 
   // ── Scheduling
   const [scheduledStart,    setScheduledStart]    = useState(nowLocalISO());
@@ -155,7 +153,7 @@ export function CreateAssignmentForm() {
   const [specialNotes,      setSpecialNotes]      = useState("");
   const [internalNotes,     setInternalNotes]     = useState("");
 
-  const isRemote = ["REMOTE", "VIDEO_RELAY", "VIDEO_REMOTE"].includes(deliveryMode);
+  const isRemote = ["REMOTE"].includes(deliveryMode);
 
   const title = useMemo(() => {
     if (clientName && languagePair) return `${clientName} – ${languagePair}`;
@@ -430,8 +428,8 @@ export function CreateAssignmentForm() {
             <F label="Required modalities"
               hint="Interpreter must have at least one selected. Leave empty to allow all.">
               <div className="grid gap-2 sm:grid-cols-4">
-                {["IN_PERSON","REMOTE","VIDEO_RELAY","VIDEO_REMOTE"].map((m) => {
-                  const label = { IN_PERSON:"In-person", REMOTE:"Remote", VIDEO_RELAY:"VRS", VIDEO_REMOTE:"VRI" }[m] ?? m;
+                {["IN_PERSON","REMOTE"].map((m) => {
+                  const label = { IN_PERSON:"In-person", REMOTE:"Remote" }[m] ?? m;
                   const active = reqModes.includes(m);
                   return (
                     <button key={m} type="button"

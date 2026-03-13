@@ -20,9 +20,7 @@ const timezoneValues = [
 
 const modeValues = [
     "IN_PERSON",
-    "REMOTE",
-    "VIDEO_RELAY",
-    "VIDEO_REMOTE",
+    "REMOTE"
 ] as const;
 
 function cleanTagArray(values: string[]) {

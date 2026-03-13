@@ -46,8 +46,8 @@ function optionalStringArray(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   return v.filter((x): x is string => typeof x === "string" && x.trim().length > 0).map((x) => x.trim());
 }
-function parseDeliveryMode(v: unknown): "IN_PERSON" | "REMOTE" | "VIDEO_RELAY" | "VIDEO_REMOTE" {
-  const valid = ["IN_PERSON", "REMOTE", "VIDEO_RELAY", "VIDEO_REMOTE"];
+function parseDeliveryMode(v: unknown): "IN_PERSON" | "REMOTE" {
+  const valid = ["IN_PERSON", "REMOTE"];
   if (typeof v === "string" && valid.includes(v)) return v as any;
   return "IN_PERSON";
 }
