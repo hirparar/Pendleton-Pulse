@@ -209,7 +209,7 @@ describe("savePreferencesAction", () => {
 
   it("accepts all valid mode values at once", async () => {
     const result = await savePreferencesAction({
-      preferredModes: ["IN_PERSON", "REMOTE", "VIDEO_RELAY", "VIDEO_REMOTE"] as any,
+      preferredModes: ["IN_PERSON", "REMOTE"] as any,
     });
     expect(result.ok).toBe(true);
   });

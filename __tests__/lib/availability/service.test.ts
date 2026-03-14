@@ -7,7 +7,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // ─── Prisma mock ──────────────────────────────────────────────────────────────
 const { availabilitySlot, availabilityTemplate } = vi.hoisted(() => ({
   availabilitySlot: {
-    upsert: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
     findFirst: vi.fn(),
     delete: vi.fn(),
     findMany: vi.fn(),
@@ -42,6 +43,7 @@ const SLOT_ID = "slot-789";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  availabilitySlot.findMany.mockResolvedValue([]);
 });
 
 // ─── upsertSlot ───────────────────────────────────────────────────────────────
@@ -53,15 +55,20 @@ describe("upsertSlot", () => {
     timezone: "America/New_York",
   };
 
-  it("calls prisma.availabilitySlot.upsert with correct args", async () => {
-    availabilitySlot.upsert.mockResolvedValue({ id: SLOT_ID });
+  it("creates a new slot when no exact or overlapping slot exists", async () => {
+    availabilitySlot.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    availabilitySlot.create.mockResolvedValue({ id: SLOT_ID });
+
     await upsertSlot(USER_ID, validInput);
-    expect(availabilitySlot.upsert).toHaveBeenCalledOnce();
-    const call = availabilitySlot.upsert.mock.calls[0][0];
-    expect(call.where.userProfileId_date_startMin_endMin.userProfileId).toBe(USER_ID);
-    expect(call.where.userProfileId_date_startMin_endMin.startMin).toBe(540);
-    expect(call.where.userProfileId_date_startMin_endMin.endMin).toBe(1020);
-    expect(call.create.timezone).toBe("America/New_York");
+
+    expect(availabilitySlot.create).toHaveBeenCalledOnce();
+    const call = availabilitySlot.create.mock.calls[0][0];
+    expect(call.data.userProfileId).toBe(USER_ID);
+    expect(call.data.startMin).toBe(540);
+    expect(call.data.endMin).toBe(1020);
+    expect(call.data.timezone).toBe("America/New_York");
   });
 
   it("throws when endMin <= startMin", async () => {
@@ -71,7 +78,8 @@ describe("upsertSlot", () => {
     await expect(upsertSlot(USER_ID, { ...validInput, startMin: 700, endMin: 600 })).rejects.toThrow(
       "End time must be after start time"
     );
-    expect(availabilitySlot.upsert).not.toHaveBeenCalled();
+    expect(availabilitySlot.create).not.toHaveBeenCalled();
+    expect(availabilitySlot.update).not.toHaveBeenCalled();
   });
 
   it("throws when startMin is negative", async () => {
@@ -87,24 +95,57 @@ describe("upsertSlot", () => {
   });
 
   it("accepts boundary values (0 to 1440)", async () => {
-    availabilitySlot.upsert.mockResolvedValue({ id: SLOT_ID });
+    availabilitySlot.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    availabilitySlot.create.mockResolvedValue({ id: SLOT_ID });
     await expect(upsertSlot(USER_ID, { ...validInput, startMin: 0, endMin: 1440 })).resolves.not.toThrow();
   });
 
   it("passes optional note and templateId", async () => {
-    availabilitySlot.upsert.mockResolvedValue({ id: SLOT_ID });
+    availabilitySlot.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    availabilitySlot.create.mockResolvedValue({ id: SLOT_ID });
     await upsertSlot(USER_ID, { ...validInput, note: "Flu clinic", templateId: TEMPLATE_ID });
-    const call = availabilitySlot.upsert.mock.calls[0][0];
-    expect(call.update.note).toBe("Flu clinic");
-    expect(call.update.templateId).toBe(TEMPLATE_ID);
+    const call = availabilitySlot.create.mock.calls[0][0];
+    expect(call.data.note).toBe("Flu clinic");
+    expect(call.data.templateId).toBe(TEMPLATE_ID);
   });
 
   it("defaults note and templateId to null when omitted", async () => {
-    availabilitySlot.upsert.mockResolvedValue({ id: SLOT_ID });
+    availabilitySlot.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    availabilitySlot.create.mockResolvedValue({ id: SLOT_ID });
     await upsertSlot(USER_ID, validInput);
-    const call = availabilitySlot.upsert.mock.calls[0][0];
-    expect(call.create.note).toBeNull();
-    expect(call.create.templateId).toBeNull();
+    const call = availabilitySlot.create.mock.calls[0][0];
+    expect(call.data.note).toBeNull();
+    expect(call.data.templateId).toBeNull();
+  });
+
+  it("updates an existing exact slot", async () => {
+    availabilitySlot.findFirst.mockResolvedValueOnce({ id: SLOT_ID });
+    availabilitySlot.update.mockResolvedValue({ id: SLOT_ID });
+
+    await upsertSlot(USER_ID, { ...validInput, note: "updated", templateId: TEMPLATE_ID });
+
+    expect(availabilitySlot.update).toHaveBeenCalledWith({
+      where: { id: SLOT_ID },
+      data: { timezone: "America/New_York", note: "updated", templateId: TEMPLATE_ID },
+    });
+    expect(availabilitySlot.create).not.toHaveBeenCalled();
+  });
+
+  it("throws when window overlaps an existing slot", async () => {
+    availabilitySlot.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: "existing", startMin: 600, endMin: 900 });
+
+    await expect(
+      upsertSlot(USER_ID, { ...validInput, startMin: 540, endMin: 1020 })
+    ).rejects.toThrow("This window overlaps an existing slot (10:00–15:00)");
+    expect(availabilitySlot.create).not.toHaveBeenCalled();
   });
 });
 

@@ -6,25 +6,30 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const {
   requireInterpreterEligible,
   revalidatePath,
+  availabilitySlot,
   upsertSlot,
   deleteSlot,
   applyTemplate,
   clearDay,
   saveTemplate,
   deleteTemplate,
+  parseLocalDate,
 } = vi.hoisted(() => ({
   requireInterpreterEligible: vi.fn(),
   revalidatePath: vi.fn(),
+  availabilitySlot: { findMany: vi.fn() },
   upsertSlot: vi.fn(),
   deleteSlot: vi.fn(),
   applyTemplate: vi.fn(),
   clearDay: vi.fn(),
   saveTemplate: vi.fn(),
   deleteTemplate: vi.fn(),
+  parseLocalDate: vi.fn(),
 }));
 
 vi.mock("@/lib/authz", () => ({ requireInterpreterEligible }));
 vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("@/lib/prisma", () => ({ prisma: { availabilitySlot } }));
 vi.mock("@/lib/availability/service", () => ({
   upsertSlot,
   deleteSlot,
@@ -32,6 +37,7 @@ vi.mock("@/lib/availability/service", () => ({
   clearDay,
   saveTemplate,
   deleteTemplate,
+  parseLocalDate,
 }));
 
 import {
@@ -48,6 +54,8 @@ const PROFILE = { id: "interp-1", role: "INTERPRETER", status: "APPROVED" };
 beforeEach(() => {
   vi.clearAllMocks();
   requireInterpreterEligible.mockResolvedValue(PROFILE);
+  parseLocalDate.mockImplementation((date: string) => new Date(`${date}T00:00:00.000Z`));
+  availabilitySlot.findMany.mockResolvedValue([]);
   upsertSlot.mockResolvedValue({});
   deleteSlot.mockResolvedValue({});
   applyTemplate.mockResolvedValue({ created: 3 });
@@ -60,9 +68,9 @@ beforeEach(() => {
 describe("upsertSlotAction", () => {
   const validInput = { date: "2026-06-15", startMin: 540, endMin: 1020, timezone: "UTC" };
 
-  it("returns { ok: true } on success", async () => {
+  it("returns { ok: true, slots } on success", async () => {
     const result = await upsertSlotAction(validInput);
-    expect(result).toEqual({ ok: true });
+    expect(result).toEqual({ ok: true, slots: [] });
   });
 
   it("calls upsertSlot with the interpreter's own id", async () => {

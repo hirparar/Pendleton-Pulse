@@ -60,8 +60,6 @@ import {
   updateAssignmentDetails,
   setAssignmentStatus,
   setAssignmentVisibility,
-  listAssignmentsAdmin,
-  getAssignmentAdmin,
   withdrawFromAssignment,
 } from "@/lib/assignments/service";
 
@@ -293,43 +291,6 @@ describe("setAssignmentVisibility", () => {
     auditEvent.create.mockResolvedValue({});
     await setAssignmentVisibility(ADMIN, ASSIGNMENT_ID, "RESTRICTED", [INTERPRETER_ID]);
     expect(assignmentVisibility.deleteMany).toHaveBeenCalledWith({ where: { assignmentId: ASSIGNMENT_ID } });
-  });
-});
-
-// ─── listAssignmentsAdmin ─────────────────────────────────────────────────────
-describe("listAssignmentsAdmin", () => {
-  it("calls findMany and returns results", async () => {
-    const mockData = [{ id: "a1" }, { id: "a2" }];
-    assignment.findMany.mockResolvedValue(mockData);
-    const result = await listAssignmentsAdmin();
-    expect(assignment.findMany).toHaveBeenCalledOnce();
-    expect(result).toEqual(mockData);
-  });
-
-  it("orders by scheduledStart ascending then createdAt descending", async () => {
-    assignment.findMany.mockResolvedValue([]);
-    await listAssignmentsAdmin();
-    const { orderBy } = assignment.findMany.mock.calls[0][0];
-    expect(orderBy).toEqual([{ scheduledStart: "asc" }, { createdAt: "desc" }]);
-  });
-
-  it("limits to 500 rows", async () => {
-    assignment.findMany.mockResolvedValue([]);
-    await listAssignmentsAdmin();
-    const { take } = assignment.findMany.mock.calls[0][0];
-    expect(take).toBe(500);
-  });
-});
-
-// ─── getAssignmentAdmin ───────────────────────────────────────────────────────
-describe("getAssignmentAdmin", () => {
-  it("calls findUnique with the given assignment id", async () => {
-    assignment.findUnique.mockResolvedValue({ id: ASSIGNMENT_ID });
-    const result = await getAssignmentAdmin(ASSIGNMENT_ID);
-    expect(assignment.findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: ASSIGNMENT_ID } })
-    );
-    expect(result).toEqual({ id: ASSIGNMENT_ID });
   });
 });
 
